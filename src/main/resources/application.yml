@@ -1,0 +1,139 @@
+# Equiflux Core 应用配置
+
+spring:
+  application:
+    name: equiflux-core
+  
+  profiles:
+    active: dev
+
+# Equiflux共识配置
+equiflux:
+  consensus:
+    # 超级节点配置
+    super-node-count: 50
+    core-node-count: 20
+    rotate-node-count: 30
+    
+    # 时间配置
+    block-time-seconds: 3
+    vrf-collection-timeout-ms: 3000
+    block-production-timeout-ms: 5000
+    
+    # 奖励配置
+    rewarded-top-x: 15
+    
+    # PoW配置
+    pow-base-difficulty: 2500000
+    pow-target-time-seconds: 3
+    
+    # 质押配置
+    min-stake-core: 100000
+    min-stake-rotate: 50000
+    
+    # 性能配置
+    max-transactions-per-block: 1000
+    max-block-size-mb: 2
+
+  # 网络配置
+  network:
+    # 基础配置
+    port: 8080
+    max-connections: 100
+    
+    # 超时配置
+    connection-timeout-ms: 30000
+    read-timeout-ms: 60000
+    write-timeout-ms: 30000
+    
+    # 心跳配置
+    heartbeat-interval-ms: 30000
+    heartbeat-timeout-ms: 90000
+    
+    # 消息配置
+    max-message-size: 1048576  # 1MB
+    buffer-size: 65536         # 64KB
+    message-expiration-ms: 300000  # 5分钟
+    
+    # 网络选项
+    tcp-no-delay: true
+    keep-alive: true
+    reuse-address: true
+    
+    # 重试配置
+    max-retry-attempts: 3
+    retry-interval-ms: 5000
+    
+    # 节点发现配置
+    peer-discovery-interval-ms: 60000
+    max-peers: 50
+    min-peers: 5
+    peer-expiration-ms: 300000  # 5分钟
+    
+    # 连接配置
+    auto-reconnect: true
+    reconnect-interval-ms: 10000
+    
+    # 压缩配置
+    enable-compression: true
+    compression-level: 6
+    
+    # 安全配置
+    enable-encryption: true
+    enable-signature-verification: true
+    
+    # 消息去重配置
+    enable-message-deduplication: true
+    message-deduplication-cache-size: 10000
+    
+    # 监控配置
+    enable-monitoring: true
+    monitoring-interval-ms: 10000
+    enable-debug-logging: false
+    enable-performance-stats: true
+    
+    # 线程配置
+    worker-threads: 8
+    boss-threads: 1
+    
+    # 网络模式配置
+    use-epoll: true
+    use-nio: true
+    use-zero-copy: true
+    use-direct-memory: true
+    max-direct-memory: 268435456  # 256MB
+    
+    # 内存池配置
+    enable-memory-pool: true
+    memory-pool-size: 67108864    # 64MB
+    
+    # 对象池配置
+    enable-object-pool: true
+    object-pool-size: 1000
+
+# 日志配置
+logging:
+  level:
+    io.equiflux.node: INFO
+    org.springframework: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/equiflux-core.log
+    max-size: 100MB
+    max-history: 30
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

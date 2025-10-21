@@ -1,0 +1,362 @@
+# Equiflux公链开发规范 - Java 21+
+
+## 项目概述
+Equiflux是一个基于三层混合共识机制的高性能区块链公链，采用PoS + VRF + 轻量级PoW的创新架构，目标实现约1800 TPS的性能和8秒确认时间。
+
+**核心创新：完全透明的VRF机制**
+- 所有超级节点强制公开VRF
+- 区块包含所有VRF证明
+- 实时验证，无历史挑战
+- 激励前15名，鼓励诚实
+
+## 技术栈要求
+- **Java版本**: Java 21 LTS (必须使用Java 21内置密码学API)
+- **构建工具**: Maven 3.8+ 或 Gradle 7.0+
+- **框架**: Spring Boot 3.x (用于RPC和API服务)
+- **数据库**: RocksDB (用于区块链存储)
+- **网络**: Netty (用于P2P网络通信)
+- **密码学**: Java 21内置API (EdDSA、ECDSA、SHA-256、SHA-3、HMAC等)
+- **序列化**: Jackson (用于JSON序列化)
+
+## 核心架构模块
+
+### 1. 共识层 (Consensus Layer)
+- **PoS治理层**: 50个超级节点选举和权益管理
+- **VRF选择层**: 完全透明的可验证随机函数实现
+- **LPoW防护层**: 轻量级工作量证明和动态难度调整
+
+### 2. 网络层 (Network Layer)
+- P2P网络通信
+- Gossip协议实现
+- 区块和交易传播
+
+### 3. 存储层 (Storage Layer)
+- 区块链数据存储
+- 状态管理
+- 交易池管理
+
+### 4. 应用层 (Application Layer)
+- RPC接口
+- 钱包服务
+- 区块浏览器API
+
+## 代码规范
+
+### 包结构
+```
+com.equiflux
+├── consensus/          # 共识协议实现
+│   ├── pos/           # PoS治理层
+│   ├── vrf/           # VRF选择层
+│   └── pow/           # LPoW防护层
+├── network/           # 网络层
+├── storage/           # 存储层
+├── crypto/            # 密码学工具
+├── model/             # 数据模型
+├── service/           # 业务服务
+├── api/               # API接口
+└── util/              # 工具类
+```
+
+### 命名规范
+- **类名**: 使用PascalCase，如 `BlockValidator`, `VRFCalculator`
+- **方法名**: 使用camelCase，如 `calculateScore()`, `verifyBlock()`
+- **常量**: 使用UPPER_SNAKE_CASE，如 `MAX_BLOCK_SIZE`, `SUPER_NODE_COUNT`
+- **包名**: 使用小写，如 `com.equiflux.consensus.vrf`
+
+### 核心类设计
+
+#### 区块结构
+```java
+public class Block {
+    private long height;
+    private long round;
+    private long timestamp;
+    private byte[] previousHash;
+    private PublicKey proposer;
+    private VRFOutput vrfOutput;
+    private VRFProof vrfProof;
+    private List<VRFAnnouncement> allVrfAnnouncements;  // 关键：所有VRF公告
+    private List<PublicKey> rewardedNodes;              // 前15名奖励节点
+    private List<Transaction> transactions;
+    private byte[] merkleRoot;
+    private long nonce;
+    private BigInteger difficultyTarget;
+    private Map<PublicKey, Signature> signatures;
+}
+```
+
+#### VRF实现
+```java
+public class VRFKeyPair {
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final String ED25519_ALGORITHM = "Ed25519";
+    private static final String ED25519_PROVIDER = "SunEC";
+    
+    public VRFOutput evaluate(byte[] input) throws CryptoException;
+    public VRFProof prove(byte[] input) throws CryptoException;
+    public static boolean verify(PublicKey publicKey, byte[] input, VRFOutput output, VRFProof proof);
+}
+```
+
+#### 共识引擎
+```java
+public interface ConsensusEngine {
+    boolean verifyBlock(Block block) throws ConsensusException;
+    PublicKey selectProposer(long round) throws ConsensusException;
+    boolean canPropose(PublicKey node, long round);
+}
+```
+
+## 开发规范
+
+### 1. 异常处理
+- 使用具体的异常类型，避免使用通用的Exception
+- 自定义业务异常继承RuntimeException
+- 关键操作必须进行异常处理和日志记录
+
+```java
+public class ConsensusException extends RuntimeException {
+    public ConsensusException(String message) {
+        super(message);
+    }
+    
+    public ConsensusException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+```
+
+### 2. 日志规范
+- 使用SLF4J + Logback
+- 日志级别：ERROR(错误), WARN(警告), INFO(信息), DEBUG(调试)
+- 关键操作必须记录日志
+- 使用结构化日志，包含必要的上下文信息
+
+```java
+private static final Logger logger = LoggerFactory.getLogger(BlockValidator.class);
+
+logger.info("验证区块: height={}, proposer={}, vrfOutput={}", 
+    block.getHeight(), block.getProposer(), block.getVrfOutput());
+```
+
+### 3. 配置管理
+- 使用Spring Boot的@ConfigurationProperties
+- 敏感配置使用环境变量或加密存储
+- 提供默认配置和验证
+
+```java
+@ConfigurationProperties(prefix = "equiflux.consensus")
+@Data
+public class ConsensusConfig {
+    private int superNodeCount = 50;
+    private int coreNodeCount = 20;
+    private int rotateNodeCount = 30;
+    private int blockTimeSeconds = 3;
+    private int vrfCollectionTimeoutMs = 3000;
+    private int rewardedTopX = 15;
+    private BigInteger powBaseDifficulty = BigInteger.valueOf(2500000);
+}
+```
+
+### 4. 测试规范
+- 单元测试覆盖率要求 > 90%
+- 集成测试覆盖关键业务流程
+- 使用TestContainers进行数据库测试
+- 性能测试使用JMH
+
+```java
+@Test
+public void testVRFScoreCalculation() {
+    // Given
+    VRFOutput vrfOutput = new VRFOutput(new byte[32]);
+    double stakeWeight = 0.5;
+    double performanceFactor = 1.0;
+    
+    // When
+    double score = vrfCalculator.calculateScore(publicKey, vrfOutput, stakeWeight, performanceFactor);
+    
+    // Then
+    assertThat(score).isBetween(0.0, 1.0);
+}
+```
+
+### 5. 性能优化
+- 使用对象池减少GC压力
+- 异步处理非关键路径操作
+- 缓存频繁访问的数据
+- 使用并行流处理批量操作
+
+```java
+// 使用对象池
+private final ObjectPool<Block> blockPool = new GenericObjectPool<>(new BlockFactory());
+
+// 异步处理
+@Async
+public CompletableFuture<Void> broadcastBlock(Block block) {
+    // 广播逻辑
+    return CompletableFuture.completedFuture(null);
+}
+```
+
+## 安全规范
+
+### 1. 密码学安全
+- 使用Java 21内置密码学API (EdDSA、ECDSA、SHA-256、SHA-3、HMAC等)
+- 密钥管理使用HSM或安全的密钥存储
+- 定期更新密码学算法
+- 实现侧信道攻击防护
+
+### 2. 输入验证
+- 所有外部输入必须验证
+- 使用白名单而非黑名单
+- 防止整数溢出和缓冲区溢出
+- 实现速率限制
+
+### 3. 网络安全
+- 使用TLS加密网络通信
+- 实现DDoS防护
+- 验证消息来源和完整性
+- 防止重放攻击
+
+## 监控和运维
+
+### 1. 指标监控
+- 使用Micrometer + Prometheus
+- 监控关键业务指标：TPS、确认时间、节点状态
+- 设置告警阈值和通知机制
+
+```java
+@Timed(name = "block.validation.time")
+@Counted(name = "block.validation.count")
+public boolean verifyBlock(Block block) {
+    // 验证逻辑
+}
+```
+
+### 2. 健康检查
+- 实现Spring Boot Actuator健康检查
+- 监控数据库连接、网络状态、内存使用
+- 提供详细的健康状态信息
+
+### 3. 日志管理
+- 使用结构化日志格式(JSON)
+- 集中化日志收集(ELK Stack)
+- 日志轮转和清理策略
+
+## 部署规范
+
+### 1. 容器化
+- 使用Docker多阶段构建
+- 优化镜像大小和安全性
+- 使用非root用户运行
+
+```dockerfile
+FROM openjdk:21-jre-slim
+RUN addgroup --system equiflux && adduser --system --group equiflux
+USER equiflux
+COPY --chown=equiflux:equiflux target/equiflux-node.jar app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+
+### 2. 配置管理
+- 使用ConfigMap和Secret管理配置
+- 支持多环境配置
+- 实现配置热更新
+
+### 3. 高可用
+- 实现节点故障自动恢复
+- 支持水平扩展
+- 实现数据备份和恢复
+
+## 文档要求
+
+### 1. API文档
+- 使用OpenAPI 3.0规范
+- 提供完整的接口文档
+- 包含请求/响应示例
+
+### 2. 代码文档
+- 关键类和方法必须有JavaDoc
+- 复杂算法提供详细注释
+- 维护架构设计文档
+
+### 3. 运维文档
+- 部署指南
+- 故障排查手册
+- 性能调优指南
+
+## 版本控制
+
+### 1. Git规范
+- 使用语义化版本号(如v1.2.3)
+- 提交信息使用约定式提交格式
+- 使用分支保护规则
+
+### 2. 发布流程
+- 使用GitHub Actions进行CI/CD
+- 自动化测试和代码质量检查
+- 支持多环境部署
+
+## 性能目标
+
+### 1. 吞吐量
+- 目标TPS: 1800 (基准)
+- 理论TPS: 2666 (最大)
+- 实际TPS: 1600-2100 (考虑网络开销)
+
+### 2. 延迟
+- 出块时间: 3秒
+- 确认时间: 8秒
+- 最终性: 2/3签名后
+
+### 3. 资源使用
+- 内存: < 32GB per node
+- CPU: < 8 cores per node
+- 存储: < 2TB per node
+- 网络: < 100Mbps per node
+
+## 关键设计原则
+
+### 1. 完全透明的VRF机制
+- 所有超级节点必须公开VRF
+- 区块包含所有VRF证明
+- 实时验证出块者合法性
+- 激励前15名确保公开
+
+### 2. 两阶段共识流程
+- 阶段1：VRF收集（3秒）
+- 阶段2：出块与验证（5秒）
+
+### 3. 激励机制设计
+- 出块奖励（60%）
+- 验证奖励（30%）
+- 投票奖励（10%）
+
+### 4. 惩罚机制
+- 不公开VRF：失去奖励 + 性能分数降低
+- 伪造VRF：没收10%质押 + 提议剔除
+- 错误出块：区分恶意与诚实错误
+- 长期离线：提议社区投票剔除
+
+## 注意事项
+
+1. **线程安全**: 所有共享数据结构必须考虑线程安全
+2. **内存管理**: 注意大对象的内存使用，避免内存泄漏
+3. **网络优化**: 使用连接池和批量操作减少网络开销
+4. **数据库优化**: 合理设计索引，避免N+1查询问题
+5. **错误处理**: 实现优雅的错误处理和恢复机制
+6. **VRF完整性**: 确保区块包含所有有效的VRF公告
+7. **出块者验证**: 严格验证出块者确实是得分最高者
+
+## 开发工具推荐
+
+- **IDE**: IntelliJ IDEA Ultimate
+- **代码质量**: SonarQube, SpotBugs, PMD
+- **性能分析**: JProfiler, VisualVM
+- **API测试**: Postman, Insomnia
+- **监控**: Grafana, Prometheus, ELK Stack
+
+---
+
+遵循以上规范，确保Equiflux公链的高质量、高性能和高安全性开发。
