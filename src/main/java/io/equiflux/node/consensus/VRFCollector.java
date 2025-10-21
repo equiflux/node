@@ -5,7 +5,6 @@ import io.equiflux.node.crypto.VRFKeyPair;
 import io.equiflux.node.exception.ConsensusException;
 import io.equiflux.node.model.VRFAnnouncement;
 import io.equiflux.node.model.VRFOutput;
-import io.equiflux.node.model.VRFProof;
 import io.equiflux.node.consensus.vrf.ScoreCalculator;
 import io.equiflux.node.consensus.vrf.VRFRoundResult;
 import org.slf4j.Logger;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Component;
 import java.security.PublicKey;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -101,7 +99,7 @@ public class VRFCollector {
             broadcastVRFAnnouncement(myAnnouncement);
             
             // 4. 收集其他节点VRF
-            List<VRFAnnouncement> collectedAnnouncements = collectOtherVRFs(round, timeoutMs);
+            List<VRFAnnouncement> collectedAnnouncements = collectOtherVRFs(round, vrfInput, timeoutMs);
             collectedAnnouncements.add(myAnnouncement);
             
             // 5. 验证所有VRF
@@ -173,10 +171,11 @@ public class VRFCollector {
      * 收集其他节点的VRF公告
      * 
      * @param round 轮次
+     * @param vrfInput VRF输入（与验证时使用相同的输入）
      * @param timeoutMs 超时时间（毫秒）
      * @return 收集到的VRF公告列表
      */
-    private List<VRFAnnouncement> collectOtherVRFs(long round, long timeoutMs) {
+    private List<VRFAnnouncement> collectOtherVRFs(long round, byte[] vrfInput, long timeoutMs) {
         long startTime = System.currentTimeMillis();
         List<VRFAnnouncement> collected = new ArrayList<>();
         
@@ -184,7 +183,7 @@ public class VRFCollector {
         
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             // 模拟从网络收集VRF公告
-            List<VRFAnnouncement> newAnnouncements = simulateVRFCollection(round);
+            List<VRFAnnouncement> newAnnouncements = simulateVRFCollection(round, vrfInput);
             collected.addAll(newAnnouncements);
             
             // 避免重复添加
@@ -214,9 +213,10 @@ public class VRFCollector {
      * 模拟VRF收集（返回模拟的VRF公告）
      * 
      * @param round 轮次
+     * @param vrfInput VRF输入（与验证时使用相同的输入）
      * @return 模拟的VRF公告列表
      */
-    private List<VRFAnnouncement> simulateVRFCollection(long round) {
+    private List<VRFAnnouncement> simulateVRFCollection(long round, byte[] vrfInput) {
         // 在实际实现中，这里会从网络层获取VRF公告
         // 目前返回模拟数据
         List<VRFAnnouncement> announcements = new ArrayList<>();
@@ -225,7 +225,6 @@ public class VRFCollector {
         for (int i = 0; i < 10; i++) {
             try {
                 VRFKeyPair keyPair = VRFKeyPair.generate();
-                byte[] vrfInput = HashUtils.computeVRFInput(new byte[32], round, 1);
                 VRFOutput vrfOutput = keyPair.evaluate(vrfInput);
                 
                 double score = Math.random(); // 模拟随机分数

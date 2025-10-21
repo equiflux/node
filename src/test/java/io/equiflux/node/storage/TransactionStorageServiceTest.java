@@ -311,7 +311,8 @@ class TransactionStorageServiceTest {
             Arrays.fill(signature, (byte) 1);
             
             return new Transaction(senderPublicKey, receiverPublicKey, 1000L, 10L, 
-                                 System.currentTimeMillis(), 1L, signature);
+                                 System.currentTimeMillis(), 1L, signature, new byte[32],
+                                 io.equiflux.node.model.TransactionType.TRANSFER);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create test transaction", e);
         }

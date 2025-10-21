@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.security.PublicKey;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -47,6 +48,7 @@ public class Transaction {
     private final long nonce;
     private final byte[] signature;
     private final byte[] hash;
+    private final TransactionType type;
     
     /**
      * 构造交易
@@ -58,6 +60,7 @@ public class Transaction {
      * @param timestamp 时间戳
      * @param nonce 防重放随机数
      * @param signature 数字签名
+     * @param type 交易类型
      */
     @JsonCreator
     public Transaction(@JsonProperty("senderPublicKey") byte[] senderPublicKey,
@@ -66,7 +69,8 @@ public class Transaction {
                        @JsonProperty("fee") long fee,
                        @JsonProperty("timestamp") long timestamp,
                        @JsonProperty("nonce") long nonce,
-                       @JsonProperty("signature") byte[] signature) {
+                       @JsonProperty("signature") byte[] signature,
+                       @JsonProperty("type") TransactionType type) {
         this.senderPublicKey = Objects.requireNonNull(senderPublicKey, "Sender public key cannot be null");
         this.receiverPublicKey = Objects.requireNonNull(receiverPublicKey, "Receiver public key cannot be null");
         this.amount = amount;
@@ -74,6 +78,7 @@ public class Transaction {
         this.timestamp = timestamp;
         this.nonce = nonce;
         this.signature = Objects.requireNonNull(signature, "Signature cannot be null");
+        this.type = Objects.requireNonNull(type, "Transaction type cannot be null");
         
         // 验证参数
         if (amount < 0) {
@@ -107,10 +112,11 @@ public class Transaction {
      * @param nonce 防重放随机数
      * @param signature 数字签名
      * @param hash 交易哈希
+     * @param type 交易类型
      */
     public Transaction(byte[] senderPublicKey, byte[] receiverPublicKey, 
                       long amount, long fee, long timestamp, long nonce, 
-                      byte[] signature, byte[] hash) {
+                      byte[] signature, byte[] hash, TransactionType type) {
         this.senderPublicKey = Objects.requireNonNull(senderPublicKey, "Sender public key cannot be null");
         this.receiverPublicKey = Objects.requireNonNull(receiverPublicKey, "Receiver public key cannot be null");
         this.amount = amount;
@@ -119,6 +125,7 @@ public class Transaction {
         this.nonce = nonce;
         this.signature = Objects.requireNonNull(signature, "Signature cannot be null");
         this.hash = Objects.requireNonNull(hash, "Hash cannot be null");
+        this.type = Objects.requireNonNull(type, "Transaction type cannot be null");
         
         // 验证参数
         if (amount < 0) {
@@ -224,6 +231,15 @@ public class Transaction {
     }
     
     /**
+     * 获取交易类型
+     * 
+     * @return 交易类型
+     */
+    public TransactionType getType() {
+        return type;
+    }
+    
+    /**
      * 获取发送者公钥的十六进制字符串
      * 
      * @return 发送者公钥的十六进制字符串
@@ -241,6 +257,26 @@ public class Transaction {
     @com.fasterxml.jackson.annotation.JsonIgnore
     public String getReceiverPublicKeyHex() {
         return HashUtils.toHexString(receiverPublicKey);
+    }
+    
+    /**
+     * 获取发送者公钥的十六进制字符串（别名方法）
+     * 
+     * @return 发送者公钥的十六进制字符串
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getFromPublicKey() {
+        return getSenderPublicKeyHex();
+    }
+    
+    /**
+     * 获取接收者公钥的十六进制字符串（别名方法）
+     * 
+     * @return 接收者公钥的十六进制字符串
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getToPublicKey() {
+        return getReceiverPublicKeyHex();
     }
     
     /**
@@ -380,13 +416,14 @@ public class Transaction {
                Objects.equals(senderPublicKey, that.senderPublicKey) &&
                Objects.equals(receiverPublicKey, that.receiverPublicKey) &&
                Arrays.equals(signature, that.signature) &&
-               Arrays.equals(hash, that.hash);
+               Arrays.equals(hash, that.hash) &&
+               Objects.equals(type, that.type);
     }
     
     @Override
     public int hashCode() {
         return Objects.hash(Arrays.hashCode(senderPublicKey), Arrays.hashCode(receiverPublicKey), amount, fee, 
-                           timestamp, nonce, Arrays.hashCode(signature), Arrays.hashCode(hash));
+                           timestamp, nonce, Arrays.hashCode(signature), Arrays.hashCode(hash), type);
     }
     
     @Override
@@ -399,6 +436,94 @@ public class Transaction {
                ", fee=" + fee +
                ", timestamp=" + timestamp +
                ", nonce=" + nonce +
+               ", type=" + type +
                '}';
+    }
+    
+    /**
+     * Transaction Builder
+     */
+    public static class Builder {
+        private byte[] senderPublicKey;
+        private byte[] receiverPublicKey;
+        private long amount;
+        private long fee;
+        private long timestamp;
+        private long nonce;
+        private byte[] signature;
+        private TransactionType type;
+        
+        public Builder() {
+            this.timestamp = System.currentTimeMillis();
+            this.type = TransactionType.TRANSFER;
+        }
+        
+        public Builder fromPublicKey(String publicKeyHex) {
+            this.senderPublicKey = HashUtils.fromHexString(publicKeyHex);
+            return this;
+        }
+        
+        public Builder toPublicKey(String publicKeyHex) {
+            this.receiverPublicKey = HashUtils.fromHexString(publicKeyHex);
+            return this;
+        }
+        
+        public Builder amount(long amount) {
+            this.amount = amount;
+            return this;
+        }
+        
+        public Builder fee(long fee) {
+            this.fee = fee;
+            return this;
+        }
+        
+        public Builder nonce(long nonce) {
+            this.nonce = nonce;
+            return this;
+        }
+        
+        public Builder timestamp(LocalDateTime timestamp) {
+            this.timestamp = timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+            return this;
+        }
+        
+        public Builder timestamp(long timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+        
+        public Builder type(TransactionType type) {
+            this.type = type;
+            return this;
+        }
+        
+        public Builder signature(String signatureHex) {
+            this.signature = HashUtils.fromHexString(signatureHex);
+            return this;
+        }
+        
+        public Builder signature(byte[] signature) {
+            this.signature = signature.clone();
+            return this;
+        }
+        
+        public Transaction build() {
+            if (signature == null) {
+                // 创建空签名，实际使用时需要重新签名
+                signature = new byte[64];
+            }
+            return new Transaction(senderPublicKey, receiverPublicKey, amount, fee, 
+                                 timestamp, nonce, signature, type);
+        }
+    }
+    
+    /**
+     * 创建Builder实例
+     * 
+     * @return Builder实例
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 }

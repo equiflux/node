@@ -291,7 +291,8 @@ class MessagePropagationServiceTest {
     private Transaction createTestTransaction() {
         return new Transaction(
             publicKey.getEncoded(), publicKey.getEncoded(), 1000L, 10L, 
-            System.currentTimeMillis(), 1L, new byte[64]
+            System.currentTimeMillis(), 1L, new byte[64], new byte[32],
+            io.equiflux.node.model.TransactionType.TRANSFER
         );
     }
     

@@ -1,6 +1,5 @@
 package io.equiflux.node.crypto;
 
-import io.equiflux.node.exception.CryptoException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 

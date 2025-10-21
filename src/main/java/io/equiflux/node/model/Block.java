@@ -418,6 +418,7 @@ public class Block {
      * 
      * @return VRF公告数量
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public int getVRFAnnouncementCount() {
         return allVRFAnnouncements.size();
     }
@@ -427,6 +428,7 @@ public class Block {
      * 
      * @return 交易数量
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public int getTransactionCount() {
         return transactions.size();
     }
@@ -436,6 +438,7 @@ public class Block {
      * 
      * @return 签名数量
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public int getSignatureCount() {
         return signatures.size();
     }

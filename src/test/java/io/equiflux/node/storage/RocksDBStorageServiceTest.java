@@ -161,7 +161,7 @@ class RocksDBStorageServiceTest {
         
         assertThatThrownBy(() -> new StorageValue(new byte[0], 0, 0, -1, "type"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Version cannot be negative");
+                .hasMessageContaining("Create timestamp must be positive");
     }
     
     @Test

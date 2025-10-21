@@ -111,6 +111,66 @@ equiflux:
     enable-object-pool: true
     object-pool-size: 1000
 
+  # RPC配置
+  rpc:
+    # 基础配置
+    port: 8080
+    enabled: true
+    
+    # 请求配置
+    max-request-size: 1048576  # 1MB
+    request-timeout-ms: 30000  # 30秒
+    max-concurrent-requests: 100
+    
+    # CORS配置
+    enable-cors: true
+    cors-allowed-origins: ["*"]
+    cors-allowed-methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    cors-allowed-headers: ["*"]
+    
+    # 日志配置
+    enable-request-logging: true
+    enable-response-logging: false
+    log-level: INFO
+    
+    # 统计配置
+    enable-method-stats: true
+    stats-window-seconds: 60
+    
+    # 限流配置
+    enable-rate-limit: true
+    rate-limit-per-second: 100
+    rate-limit-burst-size: 200
+    
+    # 认证配置
+    enable-auth: false
+    auth-token: ""
+    
+    # SSL配置
+    enable-ssl: false
+    ssl-cert-file: ""
+    ssl-key-file: ""
+    
+    # 压缩配置
+    enable-compression: true
+    compression-level: 6
+    
+    # Keep-Alive配置
+    enable-keep-alive: true
+    keep-alive-timeout-ms: 30000
+    max-keep-alive-requests: 100
+    
+    # HTTP/2配置
+    enable-http2: true
+    
+    # 线程池配置
+    thread-pool:
+      core-size: 10
+      max-size: 50
+      queue-capacity: 1000
+      keep-alive-seconds: 60
+      thread-name-prefix: "rpc-"
+
 # 日志配置
 logging:
   level:

@@ -5,7 +5,6 @@ import io.equiflux.node.crypto.VRFCalculator;
 import io.equiflux.node.model.Block;
 import io.equiflux.node.model.Transaction;
 import io.equiflux.node.config.ConsensusConfig;
-import io.equiflux.node.consensus.vrf.VRFRoundResult;
 import io.equiflux.node.consensus.vrf.ScoreCalculator;
 import io.equiflux.node.consensus.pow.PoWMiner;
 import io.equiflux.node.consensus.pow.DifficultyCalculator;
@@ -17,7 +16,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -296,8 +294,10 @@ class EquifluxConsensusIntegrationTest {
                     1000L + i * 100,
                     10L,
                     System.currentTimeMillis(),
-                    i,
-                    new byte[64] // 模拟签名
+                    (long)i,
+                    new byte[64], // 模拟签名
+                    new byte[32], // 模拟哈希
+                    io.equiflux.node.model.TransactionType.TRANSFER
                 );
                 
                 transactions.add(transaction);

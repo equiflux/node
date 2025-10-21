@@ -1877,8 +1877,8 @@ equiflux:
     public-addr: "YOUR_PUBLIC_IP:30333"
     max-peers: 100
     bootnodes:
-      - "node1.equiflux.org:30333"
-      - "node2.equiflux.org:30333"
+      - "node1.equiflux.io:30333"
+      - "node2.equiflux.io:30333"
   
   validator:
     enabled: true
@@ -2351,9 +2351,9 @@ java -jar equiflux-wallet.jar vote \
 ### E. 开发资源
 
 **官方网站**
-- 主页: https://equiflux.org
-- 文档: https://docs.equiflux.org
-- 区块浏览器: https://explorer.equiflux.org
+- 主页: https://equiflux.io
+- 文档: https://docs.equiflux.io
+- 区块浏览器: https://explorer.equiflux.io
 
 **代码仓库**
 - 核心节点: https://github.com/equiflux/node
@@ -2364,13 +2364,13 @@ java -jar equiflux-wallet.jar vote \
 - Discord: https://discord.gg/equiflux
 - Telegram: https://t.me/equiflux
 - Twitter: https://twitter.com/equiflux_chain
-- Forum: https://forum.equiflux.org
+- Forum: https://forum.equiflux.io
 
 **开发者资源**
-- API文档: https://docs.equiflux.org/api
-- SDK教程: https://docs.equiflux.org/sdk
+- API文档: https://docs.equiflux.io/api
+- SDK教程: https://docs.equiflux.io/sdk
 - 示例代码: https://github.com/equiflux/examples
-- 开发者Grant: https://grants.equiflux.org
+- 开发者Grant: https://grants.equiflux.io
 
 ### F. 性能基准测试结果
 
@@ -2559,14 +2559,14 @@ java -jar equiflux-wallet.jar vote \
 ### K. 联系方式
 
 **官方联系**
-- 邮箱: contact@equiflux.org
-- 技术支持: support@equiflux.org
-- 媒体合作: press@equiflux.org
-- 商务合作: business@equiflux.org
+- 邮箱: contact@equiflux.io
+- 技术支持: support@equiflux.io
+- 媒体合作: press@equiflux.io
+- 商务合作: business@equiflux.io
 
 **技术讨论**
 - GitHub Issues: https://github.com/equiflux/node/issues
-- 开发者论坛: https://forum.equiflux.org/dev
+- 开发者论坛: https://forum.equiflux.io/dev
 - Stack Overflow: 标签 [equiflux]
 
 **社区管理**
@@ -2645,7 +2645,6 @@ Equidflux（Three-Layer Hybrid Consensus Protocol）是一个经过深思熟虑�
 
 版本: v2.0 Final  
 更新时间: 2025-10-18  
-作者: Equiflux技术团队  
-联系: contact@equiflux.org
+联系: master@equiflux.io
 
 © 2025 Equiflux. All rights reserved. Licensed under MIT License.

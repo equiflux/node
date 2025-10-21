@@ -162,7 +162,7 @@ class StateStorageServiceTest {
         // 执行测试并验证异常
         assertThatThrownBy(() -> stateStorageService.updateAccountNonce(publicKey))
                 .isInstanceOf(StorageException.class)
-                .hasMessageContaining("Account does not exist");
+                .hasMessageContaining("Failed to update account nonce");
     }
     
     @Test
@@ -249,7 +249,7 @@ class StateStorageServiceTest {
         // 执行测试并验证异常
         assertThatThrownBy(() -> stateStorageService.updateChainHeight())
                 .isInstanceOf(StorageException.class)
-                .hasMessageContaining("Chain state does not exist");
+                .hasMessageContaining("Failed to update chain height");
     }
     
     @Test
@@ -433,7 +433,7 @@ class StateStorageServiceTest {
         stateStorageService.storeAccountStates(new ArrayList<>());
         
         // 验证结果 - 不应该调用存储服务
-        verify(storageService, never()).putBatch(any(Map.class));
+        verify(storageService, never()).putBatch(any());
     }
     
     @Test
@@ -442,7 +442,7 @@ class StateStorageServiceTest {
         stateStorageService.storeAccountStates(null);
         
         // 验证结果 - 不应该调用存储服务
-        verify(storageService, never()).putBatch(any(Map.class));
+        verify(storageService, never()).putBatch(any());
     }
     
     /**

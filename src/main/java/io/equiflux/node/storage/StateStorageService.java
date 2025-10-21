@@ -104,6 +104,48 @@ public class StateStorageService {
     }
     
     /**
+     * 按公钥十六进制字符串获取账户状态
+     * 
+     * @param publicKeyHex 公钥十六进制字符串
+     * @return 账户状态，如果不存在返回null
+     * @throws StorageException 存储异常
+     */
+    public AccountState getAccountStateByPublicKeyHex(String publicKeyHex) throws StorageException {
+        lock.readLock().lock();
+        try {
+            // 先检查缓存
+            AccountState cachedAccount = accountCache.get(publicKeyHex);
+            if (cachedAccount != null) {
+                return cachedAccount;
+            }
+            
+            // 从存储中获取
+            StorageKey accountKey = StorageKey.accountKey(publicKeyHex);
+            StorageValue accountValue = storageService.get(accountKey);
+            
+            if (accountValue == null) {
+                return null;
+            }
+            
+            AccountState accountState = objectMapper.readValue(accountValue.getData(), AccountState.class);
+            
+            // 更新缓存
+            accountCache.put(publicKeyHex, accountState);
+            evictCacheIfNeeded();
+            
+            logger.debug("Retrieved account state: publicKey={}", publicKeyHex);
+            
+            return accountState;
+            
+        } catch (Exception e) {
+            logger.error("Failed to retrieve account state: publicKey={}", publicKeyHex, e);
+            throw new StorageException("Failed to retrieve account state: " + publicKeyHex, e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+    
+    /**
      * 获取账户状态
      * 
      * @param publicKey 公钥

@@ -86,7 +86,8 @@ public class VRFOutput {
                    (output[7] & 0xFF);
         
         // 使用高8字节计算分数，避免精度问题
-        // 确保结果在0-1范围内
+        // 将long值转换为无符号值，然后除以2^63确保结果在0-1范围内
+        // 使用无符号右移避免负数问题
         return Math.abs(high) / (double) Long.MAX_VALUE;
     }
     

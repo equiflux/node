@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
-import java.security.PublicKey;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -268,7 +267,7 @@ class BlockStorageServiceTest {
         Map<String, Object> stats = blockStorageService.getCacheStats();
         assertThat(stats.get("blockCacheSize")).isEqualTo(0);
         assertThat(stats.get("hashToHeightCacheSize")).isEqualTo(0);
-        assertThat(stats.get("latestBlockHeight")).isEqualTo(-1);
+        assertThat(stats.get("latestBlockHeight")).isEqualTo(-1L);
     }
     
     @Test

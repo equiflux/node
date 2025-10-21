@@ -24,6 +24,7 @@ import java.util.Objects;
  * @version 1.0.0
  * @since 2025-01-01
  */
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public class AccountState {
     
     private final PublicKey publicKey;
@@ -35,18 +36,53 @@ public class AccountState {
     /**
      * 构造账户状态
      * 
-     * @param publicKey 账户公钥
+     * @param publicKeyBytes 账户公钥字节数组
      * @param balance 账户余额
      * @param nonce 交易nonce
      * @param stakeAmount 质押金额
      * @param lastUpdateTimestamp 最后更新时间戳
      */
     @JsonCreator
-    public AccountState(@JsonProperty("publicKey") PublicKey publicKey,
+    public AccountState(@JsonProperty("publicKey") byte[] publicKeyBytes,
                         @JsonProperty("balance") long balance,
                         @JsonProperty("nonce") long nonce,
                         @JsonProperty("stakeAmount") long stakeAmount,
                         @JsonProperty("lastUpdateTimestamp") long lastUpdateTimestamp) {
+        this.publicKey = createPublicKeyFromBytes(publicKeyBytes);
+        this.balance = balance;
+        this.nonce = nonce;
+        this.stakeAmount = stakeAmount;
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
+        
+        // 验证参数
+        if (balance < 0) {
+            throw new IllegalArgumentException("Balance cannot be negative");
+        }
+        if (nonce < 0) {
+            throw new IllegalArgumentException("Nonce cannot be negative");
+        }
+        if (stakeAmount < 0) {
+            throw new IllegalArgumentException("Stake amount cannot be negative");
+        }
+        if (lastUpdateTimestamp <= 0) {
+            throw new IllegalArgumentException("Last update timestamp must be positive");
+        }
+    }
+    
+    /**
+     * 构造账户状态（使用PublicKey对象）
+     * 
+     * @param publicKey 账户公钥
+     * @param balance 账户余额
+     * @param nonce 交易nonce
+     * @param stakeAmount 质押金额
+     * @param lastUpdateTimestamp 最后更新时间戳
+     */
+    public AccountState(PublicKey publicKey,
+                        long balance,
+                        long nonce,
+                        long stakeAmount,
+                        long lastUpdateTimestamp) {
         this.publicKey = Objects.requireNonNull(publicKey, "Public key cannot be null");
         this.balance = balance;
         this.nonce = nonce;
@@ -73,8 +109,19 @@ public class AccountState {
      * 
      * @return 账户公钥
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public PublicKey getPublicKey() {
         return publicKey;
+    }
+    
+    /**
+     * 获取账户公钥的字节数组（用于序列化）
+     * 
+     * @return 账户公钥的字节数组
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("publicKey")
+    public byte[] getPublicKeyBytes() {
+        return publicKey.getEncoded();
     }
     
     /**
@@ -111,6 +158,34 @@ public class AccountState {
      */
     public long getLastUpdateTimestamp() {
         return lastUpdateTimestamp;
+    }
+    
+    /**
+     * 获取最后更新时间（LocalDateTime格式）
+     * 
+     * @return 最后更新时间
+     */
+    public java.time.LocalDateTime getLastUpdated() {
+        return java.time.LocalDateTime.ofInstant(
+            java.time.Instant.ofEpochMilli(lastUpdateTimestamp),
+            java.time.ZoneId.systemDefault()
+        );
+    }
+    
+    /**
+     * 从字节数组创建PublicKey
+     * 
+     * @param publicKeyBytes 公钥字节数组
+     * @return PublicKey对象
+     */
+    private PublicKey createPublicKeyFromBytes(byte[] publicKeyBytes) {
+        try {
+            java.security.spec.X509EncodedKeySpec keySpec = new java.security.spec.X509EncodedKeySpec(publicKeyBytes);
+            java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("Ed25519");
+            return keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid public key bytes", e);
+        }
     }
     
     /**

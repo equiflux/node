@@ -4,7 +4,6 @@ import io.equiflux.node.crypto.VRFKeyPair;
 import io.equiflux.node.model.Block;
 import io.equiflux.node.model.Transaction;
 import io.equiflux.node.config.ConsensusConfig;
-import io.equiflux.node.consensus.EquifluxConsensus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -134,8 +133,10 @@ public class EquifluxDemo {
                 1000L,
                 10L,
                 System.currentTimeMillis(),
-                1,
-                new byte[64] // 模拟签名
+                1L,
+                new byte[64], // 模拟签名
+                new byte[32], // 模拟哈希
+                io.equiflux.node.model.TransactionType.TRANSFER
             );
             
             transactions.add(transaction);
