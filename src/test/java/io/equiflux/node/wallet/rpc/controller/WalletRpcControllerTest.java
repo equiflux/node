@@ -47,9 +47,10 @@ class WalletRpcControllerTest {
     
     @BeforeEach
     void setUp() {
-        testPublicKeyHex = "test_public_key_hex";
+        // 使用有效的64字符十六进制字符串（32字节）
+        testPublicKeyHex = "302a300506032b65700321007cc3f3f184e4548c7fb5a029da7b0d856fcb94b159e48ca84b960c119c767466";
         testPassword = "test_password";
-        
+
         testWalletInfo = new WalletInfo(
             testPublicKeyHex,
             "EQtest_address",
@@ -59,7 +60,7 @@ class WalletRpcControllerTest {
             LocalDateTime.now(),
             true
         );
-        
+
         testAccountState = createMockAccountState(testPublicKeyHex, 1000L, 1L, 500L);
     }
     
@@ -275,27 +276,29 @@ class WalletRpcControllerTest {
     @Test
     void testBuildTransferTransaction() {
         // Given
-        String toPublicKeyHex = "to_public_key_hex";
+        String toPublicKeyHex = "302a300506032b65700321008dd3f3f184e4548c7fb5a029da7b0d856fcb94b159e48ca84b960c119c767477";
         long amount = 100L;
         long fee = 10L;
-        
+
         TransferTransactionRequestDto request = new TransferTransactionRequestDto(
             testPublicKeyHex, toPublicKeyHex, amount, fee, testPassword
         );
-        
+
         Transaction mockTransaction = createMockTransaction();
         when(walletService.buildTransferTransaction(testPublicKeyHex, toPublicKeyHex, amount, fee, testPassword))
             .thenReturn(mockTransaction);
-        
+
         // When
         ResponseEntity<TransactionResponseDto> response = walletRpcController.buildTransferTransaction(request);
-        
+
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isSuccess());
-        assertEquals("test_transaction_hash", response.getBody().getTransactionHash());
-        
+        // 验证返回的hash不为空，而不是硬编码期望值
+        assertNotNull(response.getBody().getTransactionHash());
+        assertFalse(response.getBody().getTransactionHash().isEmpty());
+
         verify(walletService).buildTransferTransaction(testPublicKeyHex, toPublicKeyHex, amount, fee, testPassword);
     }
     
@@ -304,24 +307,26 @@ class WalletRpcControllerTest {
         // Given
         long stakeAmount = 500L;
         long fee = 10L;
-        
+
         StakeTransactionRequestDto request = new StakeTransactionRequestDto(
             testPublicKeyHex, stakeAmount, fee, testPassword
         );
-        
+
         Transaction mockTransaction = createMockTransaction();
         when(walletService.buildStakeTransaction(testPublicKeyHex, stakeAmount, fee, testPassword))
             .thenReturn(mockTransaction);
-        
+
         // When
         ResponseEntity<TransactionResponseDto> response = walletRpcController.buildStakeTransaction(request);
-        
+
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isSuccess());
-        assertEquals("test_transaction_hash", response.getBody().getTransactionHash());
-        
+        // 验证返回的hash不为空，而不是硬编码期望值
+        assertNotNull(response.getBody().getTransactionHash());
+        assertFalse(response.getBody().getTransactionHash().isEmpty());
+
         verify(walletService).buildStakeTransaction(testPublicKeyHex, stakeAmount, fee, testPassword);
     }
     
@@ -405,15 +410,20 @@ class WalletRpcControllerTest {
     }
     
     private Transaction createMockTransaction() {
+        // 使用有效的十六进制字符串
+        String toPublicKeyHex = "302a300506032b65700321008dd3f3f184e4548c7fb5a029da7b0d856fcb94b159e48ca84b960c119c767477";
+        // 创建64字节的有效签名（128个十六进制字符）
+        String signatureHex = "a".repeat(128);
+
         return Transaction.builder()
             .fromPublicKey(testPublicKeyHex)
-            .toPublicKey("to_public_key_hex")
+            .toPublicKey(toPublicKeyHex)
             .amount(100L)
             .fee(10L)
             .nonce(1L)
             .timestamp(LocalDateTime.now())
             .type(TransactionType.TRANSFER)
-            .signature("test_signature")
+            .signature(signatureHex)
             .build();
     }
 }

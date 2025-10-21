@@ -54,20 +54,27 @@ public class RpcController {
     public ResponseEntity<RpcResponse> handleRpcRequest(@Valid @RequestBody RpcRequest request) {
         try {
             logger.debug("Received RPC request: method={}, id={}", request.getMethod(), request.getId());
-            
-            Object result = processRpcMethod(request.getMethod(), request.getParamsAsMap());
-            RpcResponse response = RpcResponse.success(result, request.getId());
-            
+
+            // 验证 JSON-RPC 版本
+            if (request.getJsonrpc() == null || request.getJsonrpc().trim().isEmpty()) {
+                throw new RpcException(RpcError.INVALID_REQUEST, "JSON-RPC version is required");
+            }
+            if (!"2.0".equals(request.getJsonrpc())) {
+                throw new RpcException(RpcError.INVALID_REQUEST, "Unsupported JSON-RPC version: " + request.getJsonrpc());
+            }
+
+            RpcResponse response = processRpcMethod(request.getMethod(), request.getParamsAsMap(), request.getId());
+
             logger.debug("RPC request processed successfully: method={}, id={}", request.getMethod(), request.getId());
             return ResponseEntity.ok(response);
-            
+
         } catch (RpcException e) {
             logger.warn("RPC request failed: method={}, error={}", request.getMethod(), e.getMessage());
             return ResponseEntity.ok(e.toRpcResponse(request.getId()));
         } catch (Exception e) {
             logger.error("Unexpected error processing RPC request: method={}", request.getMethod(), e);
-            RpcResponse response = RpcResponse.error(RpcError.INTERNAL_ERROR, 
-                                                   "Internal server error: " + e.getMessage(), 
+            RpcResponse response = RpcResponse.error(RpcError.INTERNAL_ERROR,
+                                                   "Internal server error: " + e.getMessage(),
                                                    request.getId());
             return ResponseEntity.ok(response);
         }
@@ -87,8 +94,7 @@ public class RpcController {
             List<RpcResponse> responses = requests.stream()
                     .map(request -> {
                         try {
-                            Object result = processRpcMethod(request.getMethod(), request.getParamsAsMap());
-                            return RpcResponse.success(result, request.getId());
+                            return processRpcMethod(request.getMethod(), request.getParamsAsMap(), request.getId());
                         } catch (RpcException e) {
                             return e.toRpcResponse(request.getId());
                         } catch (Exception e) {
@@ -116,62 +122,77 @@ public class RpcController {
      * @return 方法结果
      * @throws RpcException RPC异常
      */
-    private Object processRpcMethod(String method, Map<String, Object> params) throws RpcException {
+    private RpcResponse processRpcMethod(String method, Map<String, Object> params, Object requestId) throws RpcException {
         switch (method) {
             // 区块相关方法
             case "getLatestBlock":
-                return rpcService.getLatestBlock();
+                return RpcResponse.success(rpcService.getLatestBlock(), requestId);
                 
             case "getBlockByHeight":
                 Long height = getLongParam(params, "height");
-                return rpcService.getBlockByHeight(height);
+                return RpcResponse.success(rpcService.getBlockByHeight(height), requestId);
                 
             case "getBlockByHash":
                 String hash = getStringParam(params, "hash");
-                return rpcService.getBlockByHash(hash);
+                return RpcResponse.success(rpcService.getBlockByHash(hash), requestId);
                 
             case "getBlocks":
                 Long startHeight = getLongParam(params, "startHeight");
                 Long endHeight = getLongParam(params, "endHeight");
-                return rpcService.getBlocks(startHeight, endHeight);
+                return RpcResponse.success(rpcService.getBlocks(startHeight, endHeight), requestId);
                 
             case "getRecentBlocks":
                 Integer count = getIntegerParam(params, "count");
-                return rpcService.getRecentBlocks(count);
+                return RpcResponse.success(rpcService.getRecentBlocks(count), requestId);
                 
             case "getCurrentHeight":
-                return rpcService.getCurrentHeight();
+                return RpcResponse.success(rpcService.getCurrentHeight(), requestId);
                 
             // 交易相关方法
             case "getTransactionByHash":
                 String txHash = getStringParam(params, "hash");
-                return rpcService.getTransactionByHash(txHash);
+                return RpcResponse.success(rpcService.getTransactionByHash(txHash), requestId);
                 
             case "broadcastTransaction":
-                // 这里需要从参数中构造Transaction对象
-                // 简化处理，实际应该从参数中解析交易数据
-                throw new RpcException(RpcError.INVALID_PARAMS, "broadcastTransaction method not implemented yet");
+                Map<String, Object> txData = getMapParam(params, "transaction");
+                if (txData == null) {
+                    throw new RpcException(RpcError.INVALID_PARAMS, "Missing required parameter: transaction");
+                }
+                try {
+                    // 使用 ObjectMapper 将 Map 转换为 Transaction 对象
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    String jsonStr = mapper.writeValueAsString(txData);
+                    Transaction tx = mapper.readValue(jsonStr, io.equiflux.node.model.Transaction.class);
+                    String broadcastTxHash = rpcService.broadcastTransaction(tx);
+                    return RpcResponse.success(broadcastTxHash, requestId);
+                } catch (RpcException e) {
+                    // 直接重新抛出 RpcException，不要包装
+                    throw e;
+                } catch (Exception e) {
+                    logger.error("Failed to parse transaction data", e);
+                    throw new RpcException(RpcError.INVALID_PARAMS, "Invalid transaction data: " + e.getMessage());
+                }
                 
             // 账户相关方法
             case "getAccountInfo":
                 String publicKey = getStringParam(params, "publicKey");
-                return rpcService.getAccountInfo(publicKey);
+                return RpcResponse.success(rpcService.getAccountInfo(publicKey), requestId);
                 
             case "getAccountBalance":
                 String balancePublicKey = getStringParam(params, "publicKey");
-                return rpcService.getAccountBalance(balancePublicKey);
+                return RpcResponse.success(rpcService.getAccountBalance(balancePublicKey), requestId);
                 
             case "getAccountStake":
                 String stakePublicKey = getStringParam(params, "publicKey");
-                return rpcService.getAccountStake(stakePublicKey);
+                return RpcResponse.success(rpcService.getAccountStake(stakePublicKey), requestId);
                 
             // 链状态相关方法
             case "getChainState":
-                return rpcService.getChainState();
+                return RpcResponse.success(rpcService.getChainState(), requestId);
                 
             // 网络相关方法
             case "getNetworkStats":
-                return rpcService.getNetworkStats();
+                return RpcResponse.success(rpcService.getNetworkStats(), requestId);
                 
             // 默认情况
             default:
@@ -208,10 +229,10 @@ public class RpcController {
             try {
                 return Long.parseLong((String) value);
             } catch (NumberFormatException e) {
-                throw new RpcException(RpcError.INVALID_PARAMS, "Parameter " + key + " must be a valid number");
+                throw new RpcException(RpcError.INVALID_PARAMS, "Invalid parameter type: " + key + " must be a number");
             }
         }
-        throw new RpcException(RpcError.INVALID_PARAMS, "Parameter " + key + " must be a number");
+        throw new RpcException(RpcError.INVALID_PARAMS, "Invalid parameter type: " + key + " must be a number");
     }
     
     /**
@@ -235,6 +256,21 @@ public class RpcController {
         throw new RpcException(RpcError.INVALID_PARAMS, "Parameter " + key + " must be an integer");
     }
     
+    /**
+     * 获取Map参数
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getMapParam(Map<String, Object> params, String key) throws RpcException {
+        Object value = params.get(key);
+        if (value == null) {
+            return null; // 允许为空，由调用者检查
+        }
+        if (!(value instanceof Map)) {
+            throw new RpcException(RpcError.INVALID_PARAMS, "Parameter " + key + " must be an object");
+        }
+        return (Map<String, Object>) value;
+    }
+
     /**
      * 健康检查端点
      */

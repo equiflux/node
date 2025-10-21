@@ -3,6 +3,8 @@ package io.equiflux.node.rpc.exception;
 import io.equiflux.node.rpc.dto.RpcError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -102,14 +104,63 @@ public class RpcExceptionHandler {
     }
     
     /**
+     * 处理方法参数验证异常 (JSON-RPC 2.0规范：验证错误应返回HTTP 200 + error对象)
+     *
+     * @param ex 方法参数验证异常
+     * @return RPC错误响应
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
+        String errorMessage = ex.getBindingResult().getAllErrors().stream()
+            .map(error -> error.getDefaultMessage())
+            .findFirst()
+            .orElse("Invalid request parameters");
+
+        // 尝试从请求对象中获取ID
+        Object requestId = null;
+        try {
+            Object target = ex.getBindingResult().getTarget();
+            if (target instanceof io.equiflux.node.rpc.dto.RpcRequest) {
+                requestId = ((io.equiflux.node.rpc.dto.RpcRequest) target).getId();
+            }
+        } catch (Exception ignored) {
+            // 如果无法获取ID，保持为null
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("jsonrpc", "2.0");
+
+        Map<String, Object> error = new HashMap<>();
+        error.put("code", RpcError.INVALID_REQUEST);
+        error.put("message", errorMessage);
+
+        response.put("error", error);
+        response.put("id", requestId);
+
+        return ResponseEntity.status(org.springframework.http.HttpStatus.OK).body(response);
+    }
+
+    /**
+     * 处理HTTP消息不可读异常 (如JSON格式错误)
+     *
+     * @param ex HTTP消息不可读异常
+     * @return RPC错误响应
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        RpcException rpcEx = new RpcException(RpcError.PARSE_ERROR, "Invalid JSON format");
+        return handleRpcException(rpcEx);
+    }
+
+    /**
      * 处理通用异常
-     * 
+     *
      * @param ex 通用异常
      * @return RPC错误响应
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        RpcException rpcEx = new RpcException(RpcError.INTERNAL_ERROR, 
+        RpcException rpcEx = new RpcException(RpcError.INTERNAL_ERROR,
                                             "Internal server error: " + ex.getMessage(), ex);
         return handleRpcException(rpcEx);
     }

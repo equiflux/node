@@ -350,14 +350,18 @@ public class NetworkMessage {
     private byte[] concatenateBytes(byte[]... arrays) {
         int totalLength = 0;
         for (byte[] array : arrays) {
-            totalLength += array.length;
+            if (array != null) {
+                totalLength += array.length;
+            }
         }
         
         byte[] result = new byte[totalLength];
         int offset = 0;
         for (byte[] array : arrays) {
-            System.arraycopy(array, 0, result, offset, array.length);
-            offset += array.length;
+            if (array != null) {
+                System.arraycopy(array, 0, result, offset, array.length);
+                offset += array.length;
+            }
         }
         
         return result;

@@ -194,20 +194,36 @@ public class RpcConfig {
         private String threadNamePrefix = "rpc-";
     }
     
-    // 手动添加getter方法以确保编译通过
+    // 手动添加getter和setter方法以确保Spring Boot配置绑定正常工作
     public boolean isEnableCors() {
         return enableCors;
     }
-    
+
+    public void setEnableCors(boolean enableCors) {
+        this.enableCors = enableCors;
+    }
+
     public String[] getCorsAllowedOrigins() {
         return corsAllowedOrigins;
     }
-    
+
+    public void setCorsAllowedOrigins(String[] corsAllowedOrigins) {
+        this.corsAllowedOrigins = corsAllowedOrigins;
+    }
+
     public String[] getCorsAllowedMethods() {
         return corsAllowedMethods;
     }
-    
+
+    public void setCorsAllowedMethods(String[] corsAllowedMethods) {
+        this.corsAllowedMethods = corsAllowedMethods;
+    }
+
     public String[] getCorsAllowedHeaders() {
         return corsAllowedHeaders;
+    }
+
+    public void setCorsAllowedHeaders(String[] corsAllowedHeaders) {
+        this.corsAllowedHeaders = corsAllowedHeaders;
     }
 }

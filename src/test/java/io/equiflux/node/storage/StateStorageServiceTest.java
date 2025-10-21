@@ -406,8 +406,8 @@ class StateStorageServiceTest {
     void testStoreAccountStateException() throws StorageException {
         // 准备测试数据
         AccountState accountState = createTestAccountState();
-        doThrow(new StorageException("Test exception")).when(storageService).put(any(StorageKey.class), any(StorageValue.class));
-        
+        lenient().doThrow(new StorageException("Test exception")).when(storageService).put(any(StorageKey.class), any(StorageValue.class));
+
         // 执行测试并验证异常
         assertThatThrownBy(() -> stateStorageService.storeAccountState(accountState))
                 .isInstanceOf(StorageException.class)
@@ -482,6 +482,7 @@ class StateStorageServiceTest {
     private byte[] serializeAccountState(AccountState accountState) {
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
             return mapper.writeValueAsBytes(accountState);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize account state", e);
@@ -494,6 +495,7 @@ class StateStorageServiceTest {
     private byte[] serializeChainState(ChainState chainState) {
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
             return mapper.writeValueAsBytes(chainState);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize chain state", e);

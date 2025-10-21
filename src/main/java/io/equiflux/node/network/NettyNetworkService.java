@@ -69,6 +69,12 @@ public class NettyNetworkService implements NetworkService {
     @Autowired
     private Ed25519KeyPair localKeyPair;
     
+    @Autowired
+    private MessageCompressionService compressionService;
+    
+    @Autowired
+    private MessageEncryptionService encryptionService;
+    
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicLong startTime = new AtomicLong(0);
@@ -84,7 +90,8 @@ public class NettyNetworkService implements NetworkService {
     // 节点管理
     private final Map<String, PeerInfo> peers = new ConcurrentHashMap<>();
     private final Map<String, Channel> peerChannels = new ConcurrentHashMap<>();
-    // private final Map<String, Long> messageNonces = new ConcurrentHashMap<>();
+    private final Map<String, Long> messageNonces = new ConcurrentHashMap<>();
+    private final Map<String, Long> messageTimestamps = new ConcurrentHashMap<>();
     
     // 监听器
     private final List<MessageListener> messageListeners = new CopyOnWriteArrayList<>();
@@ -226,8 +233,12 @@ public class NettyNetworkService implements NetworkService {
                 PeerInfo peerInfo = peers.get(peerId);
                 
                 if (peerInfo == null) {
-                    // 创建新的节点信息
-                    peerInfo = new PeerInfo(peerId, null, host, port, 
+                    // 创建新的节点信息，使用本地公钥作为临时公钥
+                    PublicKey tempPublicKey = localKeyPair.getPublicKey();
+                    if (tempPublicKey == null) {
+                        throw new IllegalStateException("Local key pair public key is null");
+                    }
+                    peerInfo = new PeerInfo(peerId, tempPublicKey, host, port, 
                                            PeerInfo.PeerStatus.CONNECTING, 
                                            System.currentTimeMillis(), 0, 0);
                     peers.put(peerId, peerInfo);
@@ -329,8 +340,12 @@ public class NettyNetworkService implements NetworkService {
     @Override
     public PeerInfo getLocalPeerInfo() {
         String nodeId = HashUtils.toHexString(localKeyPair.getPublicKey().getEncoded());
+        int port = networkConfig.getPort();
+        if (port <= 0 || port > 65535) {
+            port = 8080; // 默认端口
+        }
         return new PeerInfo(nodeId, localKeyPair.getPublicKey(), "localhost", 
-                           networkConfig.getPort(), PeerInfo.PeerStatus.CONNECTED, 
+                           port, PeerInfo.PeerStatus.CONNECTED, 
                            System.currentTimeMillis(), 0, 0);
     }
     
@@ -346,6 +361,24 @@ public class NettyNetworkService implements NetworkService {
             System.currentTimeMillis() - startTime.get(),
             lastActivityTime.get()
         );
+    }
+    
+    /**
+     * 获取压缩统计信息
+     * 
+     * @return 压缩统计信息
+     */
+    public MessageCompressionService.CompressionStats getCompressionStats() {
+        return compressionService.getStats();
+    }
+    
+    /**
+     * 获取加密统计信息
+     * 
+     * @return 加密统计信息
+     */
+    public MessageEncryptionService.EncryptionStats getEncryptionStats() {
+        return encryptionService.getStats();
     }
     
     @Override
@@ -503,15 +536,24 @@ public class NettyNetworkService implements NetworkService {
         long timestamp = System.currentTimeMillis();
         long nonce = generateNonce();
         
+        // 获取发送者公钥
+        PublicKey sender = localKeyPair.getPublicKey();
+        if (sender == null) {
+            throw new IllegalStateException("Local key pair public key is null");
+        }
+        
         // 创建消息
-        NetworkMessage message = new NetworkMessage(type, localKeyPair.getPublicKey(), 
+        NetworkMessage message = new NetworkMessage(type, sender, 
                                                   timestamp, nonce, payload, new byte[64]);
         
         // 签名消息
         byte[] signature = localKeyPair.sign(message.serializeForSigning());
+        if (signature == null) {
+            throw new IllegalStateException("Failed to sign message");
+        }
         
         // 重新创建带签名的消息
-        return new NetworkMessage(type, localKeyPair.getPublicKey(), 
+        return new NetworkMessage(type, sender, 
                                timestamp, nonce, payload, signature);
     }
     
@@ -523,17 +565,191 @@ public class NettyNetworkService implements NetworkService {
         return System.currentTimeMillis() + Thread.currentThread().threadId();
     }
     
+    /**
+     * 验证消息签名
+     * 
+     * @param message 网络消息
+     * @return true如果签名有效，false否则
+     */
+    private boolean verifyMessageSignature(NetworkMessage message) {
+        try {
+            if (!networkConfig.isEnableSignatureVerification()) {
+                return true; // 如果未启用签名验证，直接返回true
+            }
+            
+            // 获取发送者公钥
+            PublicKey senderPublicKey = message.getSender();
+            if (senderPublicKey == null) {
+                return false;
+            }
+            
+            // 验证签名
+            byte[] signature = message.getSignature();
+            byte[] dataToVerify = message.serializeForSigning();
+            
+            return Ed25519KeyPair.verify(senderPublicKey, dataToVerify, signature);
+            
+        } catch (Exception e) {
+            logger.error("验证消息签名失败", e);
+            return false;
+        }
+    }
+    
+    /**
+     * 检查是否为重复消息
+     * 
+     * @param message 网络消息
+     * @return true如果是重复消息，false否则
+     */
+    private boolean isDuplicateMessage(NetworkMessage message) {
+        if (!networkConfig.isEnableMessageDeduplication()) {
+            return false; // 如果未启用去重，直接返回false
+        }
+        
+        try {
+            String messageKey = generateMessageKey(message);
+            
+            // 检查是否已存在
+            if (messageNonces.containsKey(messageKey)) {
+                return true;
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            logger.error("检查重复消息失败", e);
+            return false;
+        }
+    }
+    
+    /**
+     * 检查消息是否过期
+     * 
+     * @param message 网络消息
+     * @return true如果过期，false否则
+     */
+    private boolean isMessageExpired(NetworkMessage message) {
+        try {
+            long currentTime = System.currentTimeMillis();
+            long messageAge = currentTime - message.getTimestamp();
+            
+            return messageAge > networkConfig.getMessageExpirationMs();
+            
+        } catch (Exception e) {
+            logger.error("检查消息过期失败", e);
+            return true; // 出错时认为消息过期
+        }
+    }
+    
+    /**
+     * 记录消息
+     * 
+     * @param message 网络消息
+     */
+    private void recordMessage(NetworkMessage message) {
+        try {
+            String messageKey = generateMessageKey(message);
+            
+            // 记录nonce和时间戳
+            messageNonces.put(messageKey, message.getNonce());
+            messageTimestamps.put(messageKey, message.getTimestamp());
+            
+            // 定期清理过期的记录
+            cleanupMessageRecords();
+            
+        } catch (Exception e) {
+            logger.error("记录消息失败", e);
+        }
+    }
+    
+    /**
+     * 生成消息唯一键
+     * 
+     * @param message 网络消息
+     * @return 消息键
+     */
+    private String generateMessageKey(NetworkMessage message) {
+        return message.getType().getValue() + ":" + 
+               message.getSender().hashCode() + ":" + 
+               message.getNonce() + ":" + 
+               message.getTimestamp();
+    }
+    
+    /**
+     * 清理过期的消息记录
+     */
+    private void cleanupMessageRecords() {
+        try {
+            long currentTime = System.currentTimeMillis();
+            long expirationTime = networkConfig.getMessageExpirationMs();
+            
+            // 清理过期的nonce记录
+            messageNonces.entrySet().removeIf(entry -> {
+                String messageKey = entry.getKey();
+                Long timestamp = messageTimestamps.get(messageKey);
+                return timestamp != null && (currentTime - timestamp) > expirationTime;
+            });
+            
+            // 清理过期的时间戳记录
+            messageTimestamps.entrySet().removeIf(entry -> 
+                (currentTime - entry.getValue()) > expirationTime);
+            
+        } catch (Exception e) {
+            logger.error("清理消息记录失败", e);
+        }
+    }
+    
+    /**
+     * 获取对端公钥
+     * 
+     * @param channel 网络通道
+     * @return 对端公钥
+     */
+    private PublicKey getPeerPublicKey(Channel channel) {
+        try {
+            InetSocketAddress address = (InetSocketAddress) channel.remoteAddress();
+            String peerId = address.getHostString() + ":" + address.getPort();
+            
+            PeerInfo peerInfo = peers.get(peerId);
+            if (peerInfo != null && peerInfo.getPublicKey() != null) {
+                return peerInfo.getPublicKey();
+            }
+            
+            // 如果无法获取对端公钥，返回本地公钥（用于测试）
+            logger.debug("无法获取对端公钥，使用本地公钥: {}", peerId);
+            return localKeyPair.getPublicKey();
+            
+        } catch (Exception e) {
+            logger.error("获取对端公钥失败", e);
+            return localKeyPair.getPublicKey();
+        }
+    }
+    
     private void sendMessageToChannel(Channel channel, NetworkMessage message) {
         try {
+            // 序列化消息
             byte[] data = objectMapper.writeValueAsBytes(message);
-            ByteBuf buffer = channel.alloc().buffer(data.length);
-            buffer.writeBytes(data);
+            
+            // 获取对端公钥（用于加密）
+            PublicKey peerPublicKey = getPeerPublicKey(channel);
+            
+            // 压缩消息
+            byte[] compressedData = compressionService.compress(data);
+            
+            // 加密消息
+            byte[] encryptedData = encryptionService.encrypt(compressedData, peerPublicKey);
+            
+            ByteBuf buffer = channel.alloc().buffer(encryptedData.length);
+            buffer.writeBytes(encryptedData);
             
             channel.writeAndFlush(buffer).addListener(future -> {
                 if (future.isSuccess()) {
                     messagesSent.incrementAndGet();
-                    bytesSent.addAndGet(data.length);
+                    bytesSent.addAndGet(encryptedData.length);
                     lastActivityTime.set(System.currentTimeMillis());
+                    
+                    logger.debug("消息发送成功，原始大小: {} 字节，最终大小: {} 字节", 
+                                data.length, encryptedData.length);
                 } else {
                     logger.error("发送消息失败", future.cause());
                 }
@@ -640,8 +856,17 @@ public class NettyNetworkService implements NetworkService {
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             try {
                 ByteBuf buffer = (ByteBuf) msg;
-                byte[] data = new byte[buffer.readableBytes()];
-                buffer.readBytes(data);
+                byte[] encryptedData = new byte[buffer.readableBytes()];
+                buffer.readBytes(encryptedData);
+                
+                // 获取对端公钥（用于解密）
+                PublicKey peerPublicKey = getPeerPublicKey(ctx.channel());
+                
+                // 解密消息
+                byte[] compressedData = encryptionService.decrypt(encryptedData, peerPublicKey);
+                
+                // 解压缩消息
+                byte[] data = compressionService.decompress(compressedData);
                 
                 NetworkMessage message = objectMapper.readValue(data, NetworkMessage.class);
                 
@@ -649,6 +874,27 @@ public class NettyNetworkService implements NetworkService {
                 if (message.isValidFormat()) {
                     InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
                     String senderId = address.getHostString() + ":" + address.getPort();
+                    
+                    // 验证消息签名
+                    if (!verifyMessageSignature(message)) {
+                        logger.warn("消息签名验证失败，来自: {}", senderId);
+                        return;
+                    }
+                    
+                    // 检查消息去重
+                    if (isDuplicateMessage(message)) {
+                        logger.debug("重复消息，忽略: {} 来自: {}", message.getType(), senderId);
+                        return;
+                    }
+                    
+                    // 检查消息时间戳
+                    if (isMessageExpired(message)) {
+                        logger.debug("过期消息，忽略: {} 来自: {}", message.getType(), senderId);
+                        return;
+                    }
+                    
+                    // 记录消息
+                    recordMessage(message);
                     
                     messagesReceived.incrementAndGet();
                     bytesReceived.addAndGet(data.length);

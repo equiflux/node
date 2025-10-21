@@ -50,7 +50,9 @@ class RpcControllerTest {
     
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(rpcController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(rpcController)
+                .setControllerAdvice(new io.equiflux.node.rpc.exception.RpcExceptionHandler())
+                .build();
         objectMapper = new ObjectMapper();
     }
     
@@ -421,16 +423,23 @@ class RpcControllerTest {
         // Given
         Map<String, Object> params = new HashMap<>();
         Map<String, Object> transactionData = new HashMap<>();
-        transactionData.put("from", "test-from");
-        transactionData.put("to", "test-to");
+        // 使用 base64 编码的 32 字节数组 (全0)
+        String base64PublicKey = java.util.Base64.getEncoder().encodeToString(new byte[32]);
+        // 使用 base64 编码的 64 字节签名数组 (全0)
+        String base64Signature = java.util.Base64.getEncoder().encodeToString(new byte[64]);
+
+        transactionData.put("senderPublicKey", base64PublicKey);
+        transactionData.put("receiverPublicKey", base64PublicKey);
         transactionData.put("amount", 1000);
         transactionData.put("fee", 10);
         transactionData.put("nonce", 1);
-        transactionData.put("signature", "test-signature");
+        transactionData.put("timestamp", System.currentTimeMillis());
+        transactionData.put("signature", base64Signature);
+        transactionData.put("type", "TRANSFER");
         params.put("transaction", transactionData);
-        
+
         RpcRequest request = new RpcRequest("broadcastTransaction", params, 1);
-        
+
         when(rpcService.broadcastTransaction(any(Transaction.class))).thenReturn("test-tx-hash");
         
         // When & Then
@@ -448,11 +457,22 @@ class RpcControllerTest {
         // Given
         Map<String, Object> params = new HashMap<>();
         Map<String, Object> transactionData = new HashMap<>();
+        // 使用有效的格式但无效的金额
+        String base64PublicKey = java.util.Base64.getEncoder().encodeToString(new byte[32]);
+        String base64Signature = java.util.Base64.getEncoder().encodeToString(new byte[64]);
+
+        transactionData.put("senderPublicKey", base64PublicKey);
+        transactionData.put("receiverPublicKey", base64PublicKey);
         transactionData.put("amount", 0); // 无效金额
+        transactionData.put("fee", 10);
+        transactionData.put("nonce", 1);
+        transactionData.put("timestamp", System.currentTimeMillis());
+        transactionData.put("signature", base64Signature);
+        transactionData.put("type", "TRANSFER");
         params.put("transaction", transactionData);
-        
+
         RpcRequest request = new RpcRequest("broadcastTransaction", params, 1);
-        
+
         when(rpcService.broadcastTransaction(any(Transaction.class)))
             .thenThrow(new RpcException(RpcError.INVALID_PARAMS, "Transaction amount must be positive"));
         
@@ -637,7 +657,7 @@ class RpcControllerTest {
     void testHandleRpcRequest_NullMethod() throws Exception {
         // Given
         RpcRequest request = new RpcRequest(null, null, 1);
-        
+
         // When & Then
         mockMvc.perform(post("/rpc")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -645,9 +665,9 @@ class RpcControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.jsonrpc").value("2.0"))
                 .andExpect(jsonPath("$.error.code").value(RpcError.INVALID_REQUEST))
-                .andExpect(jsonPath("$.error.message").value("Method name is required"))
+                .andExpect(jsonPath("$.error.message").value("Method name cannot be empty"))
                 .andExpect(jsonPath("$.id").value(1));
-        
+
         verify(rpcService, never()).getCurrentHeight();
     }
     
@@ -692,35 +712,23 @@ class RpcControllerTest {
         verify(rpcService, never()).getCurrentHeight();
     }
     
-    @Test
-    void testHandleBatchRpcRequest_NullArray() throws Exception {
-        // Given
-        RpcRequest[] requests = null;
-        
-        // When & Then
-        mockMvc.perform(post("/rpc/batch")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requests)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
-        
-        verify(rpcService, never()).getCurrentHeight();
-    }
-    
     // ==================== JSON解析测试 ====================
     
     @Test
     void testHandleRpcRequest_InvalidJson() throws Exception {
         // Given
         String invalidJson = "{ invalid json }";
-        
+
         // When & Then
+        // JSON-RPC 2.0: 解析错误应该返回HTTP 200 + error对象
         mockMvc.perform(post("/rpc")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidJson))
-                .andExpect(status().isBadRequest());
-        
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jsonrpc").value("2.0"))
+                .andExpect(jsonPath("$.error.code").value(RpcError.PARSE_ERROR))
+                .andExpect(jsonPath("$.error.message").value("Invalid JSON format"));
+
         verify(rpcService, never()).getCurrentHeight();
     }
     

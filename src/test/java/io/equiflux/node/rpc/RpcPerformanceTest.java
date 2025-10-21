@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -79,24 +80,7 @@ class RpcPerformanceTest {
     }
     
     private void setupDefaultMocks() {
-        // 区块相关mock
-        when(blockStorageService.getLatestBlock()).thenReturn(createMockBlock());
-        when(blockStorageService.getBlockByHeight(anyLong())).thenReturn(createMockBlock());
-        when(blockStorageService.getBlockByHash(anyString())).thenReturn(createMockBlock());
-        when(blockStorageService.getCurrentHeight()).thenReturn(100L);
-        when(blockStorageService.getBlocks(anyLong(), anyLong())).thenReturn(Arrays.asList(createMockBlock()));
-        when(blockStorageService.getRecentBlocks(anyInt())).thenReturn(Arrays.asList(createMockBlock()));
-        
-        // 交易相关mock
-        when(transactionStorageService.getTransactionByHash(anyString())).thenReturn(createMockTransaction());
-        when(networkService.broadcastTransaction(any(Transaction.class)))
-            .thenReturn(CompletableFuture.completedFuture(null));
-        
-        // 账户相关mock
-        when(stateStorageService.getAccountStateByPublicKeyHex(anyString())).thenReturn(createMockAccountState());
-        
-        // 链状态相关mock
-        when(stateStorageService.getChainState()).thenReturn(createMockChainState());
+        // 移除全局mock，让每个测试自己设置需要的mock
     }
     
     // ==================== 响应时间测试 ====================
@@ -104,6 +88,8 @@ class RpcPerformanceTest {
     @Test
     void testResponseTime_SingleRequest() throws Exception {
         // Given
+        when(blockStorageService.getCurrentHeight()).thenReturn(100L);
+        
         int iterations = 100;
         long totalTime = 0;
         
@@ -134,6 +120,10 @@ class RpcPerformanceTest {
     @Test
     void testResponseTime_DifferentMethods() throws Exception {
         // Given
+        when(blockStorageService.getCurrentHeight()).thenReturn(100L);
+        when(blockStorageService.getLatestBlock()).thenReturn(createMockBlock());
+        when(stateStorageService.getChainState()).thenReturn(createMockChainState());
+        
         String[] methods = {
             "getCurrentHeight",
             "getLatestBlock", 
@@ -165,6 +155,8 @@ class RpcPerformanceTest {
     @Test
     void testConcurrentRequests_Performance() throws Exception {
         // Given
+        when(blockStorageService.getCurrentHeight()).thenReturn(100L);
+        
         int threadCount = 50;
         int requestsPerThread = 20;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -220,6 +212,8 @@ class RpcPerformanceTest {
     @Test
     void testConcurrentBatchRequests_Performance() throws Exception {
         // Given
+        when(blockStorageService.getCurrentHeight()).thenReturn(100L);
+        
         int threadCount = 20;
         int batchRequestsPerThread = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -358,6 +352,8 @@ class RpcPerformanceTest {
     @Test
     void testStressTest_HighLoad() throws Exception {
         // Given
+        when(blockStorageService.getCurrentHeight()).thenReturn(100L);
+        
         int totalRequests = 1000;
         ExecutorService executor = Executors.newFixedThreadPool(100);
         AtomicInteger successCount = new AtomicInteger(0);
@@ -417,52 +413,87 @@ class RpcPerformanceTest {
     }
     
     private Block createMockBlock() {
-        Block block = mock(Block.class);
-        when(block.getHeight()).thenReturn(100L);
-        when(block.getHashHex()).thenReturn("test-hash");
-        when(block.getPreviousHashHex()).thenReturn("previous-hash");
-        when(block.getTimestamp()).thenReturn(System.currentTimeMillis());
-        when(block.getRound()).thenReturn(1);
-        when(block.getProposerHex()).thenReturn("test-proposer");
-        when(block.getVrfOutputHex()).thenReturn("test-vrf-output");
-        when(block.getVrfProof()).thenReturn(mock(io.equiflux.node.model.VRFProof.class));
-        when(block.getMerkleRootHex()).thenReturn("test-merkle-root");
-        when(block.getNonce()).thenReturn(12345L);
-        when(block.getDifficultyTarget()).thenReturn(BigInteger.valueOf(1000000));
-        when(block.getTransactions()).thenReturn(Arrays.asList());
-        when(block.getAllVRFAnnouncements()).thenReturn(Arrays.asList());
-        return block;
+        // 创建真实的Block对象而不是mock
+        byte[] proofBytes = new byte[64];
+        java.util.Arrays.fill(proofBytes, (byte) 0x42); // 填充测试数据
+        io.equiflux.node.model.VRFProof vrfProof = new io.equiflux.node.model.VRFProof(proofBytes);
+        
+        byte[] proposerBytes = new byte[32];
+        java.util.Arrays.fill(proposerBytes, (byte) 0x01);
+        
+        byte[] vrfOutputBytes = new byte[32];
+        java.util.Arrays.fill(vrfOutputBytes, (byte) 0x02);
+        
+        byte[] previousHashBytes = new byte[32];
+        java.util.Arrays.fill(previousHashBytes, (byte) 0x03);
+        
+        byte[] merkleRootBytes = new byte[32];
+        java.util.Arrays.fill(merkleRootBytes, (byte) 0x04);
+        
+        return new Block(
+            100L, // height
+            1, // round
+            System.currentTimeMillis(), // timestamp
+            previousHashBytes, // previousHash
+            proposerBytes, // proposer
+            vrfOutputBytes, // vrfOutput
+            vrfProof, // vrfProof
+            Arrays.asList(), // allVRFAnnouncements
+            Arrays.asList(), // rewardedNodes
+            Arrays.asList(), // transactions
+            12345L, // nonce
+            BigInteger.valueOf(1000000), // difficultyTarget
+            new HashMap<>() // signatures
+        );
     }
     
     private Transaction createMockTransaction() {
-        Transaction transaction = mock(Transaction.class);
-        when(transaction.getHashHex()).thenReturn("test-tx-hash");
-        when(transaction.getSenderPublicKey()).thenReturn(new byte[32]);
-        when(transaction.getReceiverPublicKey()).thenReturn(new byte[32]);
-        when(transaction.getAmount()).thenReturn(1000L);
-        when(transaction.getFee()).thenReturn(10L);
-        when(transaction.getNonce()).thenReturn(1L);
-        when(transaction.getTimestamp()).thenReturn(System.currentTimeMillis());
-        when(transaction.getSignature()).thenReturn(new byte[64]);
-        return transaction;
+        // 创建真实的Transaction对象而不是mock
+        byte[] senderPublicKey = new byte[32];
+        java.util.Arrays.fill(senderPublicKey, (byte) 0x01);
+        
+        byte[] receiverPublicKey = new byte[32];
+        java.util.Arrays.fill(receiverPublicKey, (byte) 0x02);
+        
+        byte[] signature = new byte[64];
+        java.util.Arrays.fill(signature, (byte) 0x03);
+        
+        return new Transaction(
+            senderPublicKey,
+            receiverPublicKey,
+            1000L, // amount
+            10L,   // fee
+            System.currentTimeMillis(), // timestamp
+            1L,    // nonce
+            signature,
+            io.equiflux.node.model.TransactionType.TRANSFER
+        );
     }
     
     private AccountState createMockAccountState() {
-        AccountState accountState = mock(AccountState.class);
-        when(accountState.getPublicKeyHex()).thenReturn("test-key");
-        when(accountState.getBalance()).thenReturn(1000L);
-        when(accountState.getStakeAmount()).thenReturn(500L);
-        when(accountState.getNonce()).thenReturn(1L);
-        when(accountState.getLastUpdateTimestamp()).thenReturn(System.currentTimeMillis());
-        return accountState;
+        // 创建真实的AccountState对象而不是mock
+        // 生成真实的Ed25519密钥对
+        io.equiflux.node.crypto.Ed25519KeyPair keyPair = io.equiflux.node.crypto.Ed25519KeyPair.generate();
+        byte[] publicKeyBytes = keyPair.getPublicKey().getEncoded();
+        
+        return new AccountState(
+            publicKeyBytes,
+            1000L, // balance
+            1L,    // nonce
+            500L,  // stakeAmount
+            System.currentTimeMillis() // lastUpdateTimestamp
+        );
     }
     
     private ChainState createMockChainState() {
-        ChainState chainState = mock(ChainState.class);
-        when(chainState.getCurrentHeight()).thenReturn(100L);
-        when(chainState.getCurrentRound()).thenReturn(1L);
-        when(chainState.getTotalSupply()).thenReturn(1000000L);
-        when(chainState.getCurrentDifficulty()).thenReturn(BigInteger.valueOf(1000000));
-        return chainState;
+        // 创建真实的ChainState对象而不是mock
+        return new ChainState(
+            100L, // currentHeight
+            1L,   // currentRound
+            1000000L, // totalSupply
+            50,   // activeSuperNodes
+            BigInteger.valueOf(1000000), // currentDifficulty
+            System.currentTimeMillis() // lastUpdateTimestamp
+        );
     }
 }

@@ -28,11 +28,10 @@ import java.util.Objects;
  */
 public class RpcRequest {
     
-    @NotBlank(message = "JSON-RPC version is required")
     @JsonProperty("jsonrpc")
-    private String jsonrpc = "2.0";
+    private String jsonrpc;
     
-    @NotBlank(message = "Method name is required")
+    @NotBlank(message = "Method name cannot be empty")
     @JsonProperty("method")
     private String method;
     

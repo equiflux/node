@@ -192,21 +192,21 @@ class TransactionStorageServiceTest {
     
     @Test
     void testGetAllFromTransactionPool() throws StorageException {
-        // 准备测试数据
-        Transaction transaction1 = createTestTransaction();
-        Transaction transaction2 = createTestTransaction();
-        
+        // 准备测试数据 - 创建两个不同的交易（使用不同的nonce来确保不同的hash）
+        Transaction transaction1 = createTestTransactionWithNonce(1L);
+        Transaction transaction2 = createTestTransactionWithNonce(2L);
+
         Map<StorageKey, StorageValue> poolEntries = new HashMap<>();
-        poolEntries.put(StorageKey.transactionPoolKey(transaction1.getHashHex()), 
+        poolEntries.put(StorageKey.transactionPoolKey(transaction1.getHashHex()),
                        new StorageValue(serializeTransaction(transaction1), "Transaction"));
-        poolEntries.put(StorageKey.transactionPoolKey(transaction2.getHashHex()), 
+        poolEntries.put(StorageKey.transactionPoolKey(transaction2.getHashHex()),
                        new StorageValue(serializeTransaction(transaction2), "Transaction"));
-        
+
         when(storageService.getByNamespace("tx_pool")).thenReturn(poolEntries);
-        
+
         // 执行测试
         List<Transaction> result = transactionStorageService.getAllFromTransactionPool();
-        
+
         // 验证结果
         assertThat(result).hasSize(2);
     }
@@ -300,18 +300,29 @@ class TransactionStorageServiceTest {
      * 创建测试交易
      */
     private Transaction createTestTransaction() {
+        return createTestTransactionWithNonce(1L);
+    }
+
+    /**
+     * 创建指定nonce的测试交易
+     */
+    private Transaction createTestTransactionWithNonce(long nonce) {
         try {
             KeyPair senderKeyPair = java.security.KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
             KeyPair receiverKeyPair = java.security.KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
-            
+
             byte[] senderPublicKey = senderKeyPair.getPublic().getEncoded();
             byte[] receiverPublicKey = receiverKeyPair.getPublic().getEncoded();
-            
+
             byte[] signature = new byte[64];
             Arrays.fill(signature, (byte) 1);
-            
-            return new Transaction(senderPublicKey, receiverPublicKey, 1000L, 10L, 
-                                 System.currentTimeMillis(), 1L, signature, new byte[32],
+
+            // 使用不同的nonce确保不同的hash
+            byte[] hash = new byte[32];
+            hash[0] = (byte) nonce; // 简单地使用nonce区分hash
+
+            return new Transaction(senderPublicKey, receiverPublicKey, 1000L, 10L,
+                                 System.currentTimeMillis(), nonce, signature, hash,
                                  io.equiflux.node.model.TransactionType.TRANSFER);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create test transaction", e);

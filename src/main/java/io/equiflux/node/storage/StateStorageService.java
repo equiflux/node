@@ -63,6 +63,7 @@ public class StateStorageService {
     public StateStorageService(StorageService storageService) {
         this.storageService = storageService;
         this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     }
     
     /**

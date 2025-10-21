@@ -49,10 +49,11 @@ class KeyManagementServiceTest {
         // Given
         WalletKeyPair originalKeyPair = keyManagementService.generateKeyPair();
         String privateKeyHex = originalKeyPair.getPrivateKeyHex();
-        
-        // When
-        WalletKeyPair importedKeyPair = keyManagementService.importKeyPair(privateKeyHex);
-        
+        String publicKeyHex = originalKeyPair.getPublicKeyHex();
+
+        // When - 使用完整密钥对导入
+        WalletKeyPair importedKeyPair = keyManagementService.importKeyPair(privateKeyHex, publicKeyHex);
+
         // Then
         assertNotNull(importedKeyPair);
         assertEquals(originalKeyPair.getPublicKeyHex(), importedKeyPair.getPublicKeyHex());
@@ -76,10 +77,10 @@ class KeyManagementServiceTest {
         WalletKeyPair keyPair = keyManagementService.generateKeyPair();
         String publicKeyHex = keyPair.getPublicKeyHex();
         String privateKeyHex = keyPair.getPrivateKeyHex();
-        
+
         // When
         boolean isValid = keyManagementService.validateKeyPair(publicKeyHex, privateKeyHex);
-        
+
         // Then
         assertTrue(isValid);
     }
