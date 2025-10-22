@@ -1,18 +1,15 @@
 package io.equiflux.node.wallet.service;
 
-import io.equiflux.node.exception.StorageException;
 import io.equiflux.node.exception.WalletException;
 import io.equiflux.node.storage.StorageService;
 import io.equiflux.node.storage.model.StorageKey;
 import io.equiflux.node.storage.model.StorageValue;
 import io.equiflux.node.wallet.model.WalletInfo;
-import io.equiflux.node.wallet.model.WalletStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -43,7 +40,7 @@ public class WalletStorageService {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     
     // 缓存配置
-    private final int maxCacheSize = 1000;
+    // private final int maxCacheSize = 1000; // 暂时未使用
     
     public WalletStorageService(StorageService storageService) {
         this.storageService = storageService;

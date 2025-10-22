@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>区块详情 - Equiflux Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            color: #007bff !important;
+        }
+        .hash-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .search-box {
+            max-width: 500px;
+        }
+        .copy-btn {
+            cursor: pointer;
+            color: #007bff;
+        }
+        .copy-btn:hover {
+            color: #0056b3;
+        }
+        .vrf-card {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/explorer/">
+                <i class="fas fa-cube"></i> Equiflux Explorer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/dashboard">
+                            <i class="fas fa-tachometer-alt"></i> 仪表板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/blocks">
+                            <i class="fas fa-cubes"></i> 区块
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/transactions">
+                            <i class="fas fa-exchange-alt"></i> 交易
+                        </a>
+                    </li>
+                </ul>
+                <form class="d-flex search-box" id="searchForm">
+                    <input class="form-control me-2" type="search" placeholder="搜索区块、交易或地址..." id="searchInput">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <div class="container mt-4">
+        <!-- 加载状态 -->
+        <div id="loadingState" class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2">正在加载区块详情...</p>
+        </div>
+
+        <!-- 区块详情 -->
+        <div id="blockDetail" style="display: none;">
+            <!-- 区块基本信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cube"></i> 区块信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>高度:</strong></td>
+                                    <td id="blockHeight">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>哈希:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="blockHash">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('blockHash')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>前一区块:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="previousHash">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('previousHash')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Merkle根:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="merkleRoot">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('merkleRoot')"></i>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>轮次:</strong></td>
+                                    <td id="blockRound">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>出块者:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="proposer">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('proposer')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>时间戳:</strong></td>
+                                    <td class="timestamp" id="timestamp">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>交易数:</strong></td>
+                                    <td id="transactionCount">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VRF信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-random"></i> VRF信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>VRF输出:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="vrfOutput">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('vrfOutput')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>VRF证明:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="vrfProof">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('vrfProof')"></i>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Nonce:</strong></td>
+                                    <td id="nonce">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>难度目标:</strong></td>
+                                    <td id="difficultyTarget">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VRF公告列表 -->
+            <div class="card mb-4" id="vrfAnnouncementsCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullhorn"></i> VRF公告列表
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="vrfAnnouncementsList">
+                        <!-- VRF公告将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 交易列表 -->
+            <div class="card mb-4" id="transactionsCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt"></i> 交易列表
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="transactionsList">
+                        <!-- 交易将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 -->
+        <div id="errorState" class="text-center" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 加载区块详情失败
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.pathname.split('/').pop();
+            loadBlockDetail(hash);
+        });
+
+        // 加载区块详情
+        async function loadBlockDetail(hash) {
+            try {
+                showLoading();
+                const response = await fetch(`/explorer/api/block/hash/${hash}`);
+                if (response.ok) {
+                    const block = await response.json();
+                    displayBlockDetail(block);
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                console.error('Failed to load block detail:', error);
+                showError();
+            }
+        }
+
+        // 显示区块详情
+        function displayBlockDetail(block) {
+            // 基本信息
+            document.getElementById('blockHeight').textContent = block.height.toLocaleString();
+            document.getElementById('blockHash').textContent = block.hash;
+            document.getElementById('previousHash').textContent = block.previousHash;
+            document.getElementById('merkleRoot').textContent = block.merkleRoot;
+            document.getElementById('blockRound').textContent = block.round;
+            document.getElementById('proposer').textContent = block.proposer;
+            document.getElementById('timestamp').textContent = new Date(block.timestamp).toLocaleString();
+            document.getElementById('transactionCount').textContent = block.transactionCount;
+
+            // VRF信息
+            document.getElementById('vrfOutput').textContent = block.vrfOutput || '-';
+            document.getElementById('vrfProof').textContent = block.vrfProof || '-';
+            document.getElementById('nonce').textContent = block.nonce;
+            document.getElementById('difficultyTarget').textContent = block.difficultyTarget;
+
+            // VRF公告
+            if (block.allVrfAnnouncements && block.allVrfAnnouncements.length > 0) {
+                displayVrfAnnouncements(block.allVrfAnnouncements);
+                document.getElementById('vrfAnnouncementsCard').style.display = 'block';
+            }
+
+            // 交易列表
+            if (block.transactions && block.transactions.length > 0) {
+                displayTransactions(block.transactions);
+                document.getElementById('transactionsCard').style.display = 'block';
+            }
+
+            hideLoading();
+        }
+
+        // 显示VRF公告
+        function displayVrfAnnouncements(announcements) {
+            const container = document.getElementById('vrfAnnouncementsList');
+            
+            const announcementsHtml = announcements.map(announcement => {
+                const timestamp = new Date(announcement.timestamp).toLocaleString();
+                return `
+                    <div class="card vrf-card mb-2">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>节点ID:</strong><br>
+                                    <span class="hash-text">${announcement.nodeId.substring(0, 16)}...</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>公钥:</strong><br>
+                                    <span class="hash-text">${announcement.publicKey.substring(0, 16)}...</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>轮次:</strong><br>
+                                    ${announcement.round}
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>得分:</strong><br>
+                                    ${announcement.score.toFixed(6)}
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>时间:</strong><br>
+                                    <small class="timestamp">${timestamp}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = announcementsHtml;
+        }
+
+        // 显示交易列表
+        function displayTransactions(transactions) {
+            const container = document.getElementById('transactionsList');
+            
+            const transactionsHtml = transactions.map(tx => {
+                const timestamp = new Date(tx.timestamp).toLocaleString();
+                return `
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>哈希:</strong><br>
+                                    <span class="hash-text">${tx.hash.substring(0, 20)}...</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>发送方:</strong><br>
+                                    <span class="hash-text">${tx.from.substring(0, 16)}...</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>接收方:</strong><br>
+                                    <span class="hash-text">${tx.to.substring(0, 16)}...</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>金额:</strong><br>
+                                    ${(tx.amount / 1000000).toFixed(4)} EQX
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>手续费:</strong> ${tx.fee} EQX
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>时间:</strong> <span class="timestamp">${timestamp}</span>
+                                </div>
+                            </div>
+                            <div class="text-end mt-2">
+                                <a href="/explorer/transaction/${tx.hash}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye"></i> 查看详情
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = transactionsHtml;
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('blockDetail').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('blockDetail').style.display = 'block';
+        }
+
+        // 显示错误
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('blockDetail').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // 显示复制成功提示
+                const btn = element.nextElementSibling;
+                const originalClass = btn.className;
+                btn.className = 'fas fa-check text-success ms-2';
+                
+                setTimeout(function() {
+                    btn.className = originalClass;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // 搜索功能
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = `/explorer/search?q=${encodeURIComponent(query)}`;
+            }
+        });
+    </script>
+</body>
+</html>

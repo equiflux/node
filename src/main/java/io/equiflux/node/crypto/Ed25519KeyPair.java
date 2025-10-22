@@ -32,7 +32,7 @@ import java.util.Objects;
  */
 public class Ed25519KeyPair {
     
-    private static final String ED25519_ALGORITHM = "EdDSA";
+    private static final String ED25519_ALGORITHM = "Ed25519";
     private static final String ED25519_PROVIDER = "SunEC";
     
     private final PrivateKey privateKey;
@@ -58,7 +58,7 @@ public class Ed25519KeyPair {
     public static Ed25519KeyPair generate() {
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(ED25519_ALGORITHM, ED25519_PROVIDER);
-            keyGen.initialize(255); // Ed25519 curve size
+            // Ed25519不需要手动初始化参数
             
             KeyPair keyPair = keyGen.generateKeyPair();
             return new Ed25519KeyPair(keyPair.getPrivate(), keyPair.getPublic());

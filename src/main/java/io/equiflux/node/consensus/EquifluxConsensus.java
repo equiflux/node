@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2025-01-01
  */
 @Component
-public class EquifluxConsensus {
+public class EquifluxConsensus implements ConsensusEngine {
     
     private static final Logger logger = LoggerFactory.getLogger(EquifluxConsensus.class);
     

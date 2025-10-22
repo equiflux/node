@@ -2,7 +2,7 @@
 
 spring:
   application:
-    name: equiflux-core
+    name: equiflux-node
   
   profiles:
     active: dev
@@ -180,7 +180,7 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/equiflux-core.log
+    name: logs/equiflux-node.log
     max-size: 100MB
     max-history: 30
 

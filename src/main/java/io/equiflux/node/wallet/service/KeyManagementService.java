@@ -13,7 +13,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.security.KeyFactory;
-import java.util.Base64;
 
 /**
  * 密钥管理服务
@@ -303,7 +302,7 @@ public class KeyManagementService {
             // 简化实现：Ed25519公钥可以从32字节种子计算得出
 
             // 提取私钥种子（32字节）
-            byte[] seed = extractSeedFromPKCS8(encoded);
+            // byte[] seed = extractSeedFromPKCS8(encoded); // 暂时未使用
 
             // 使用Bouncy Castle或者Ed25519算法从种子计算公钥
             // 这里使用Java crypto API的限制，我们采用重新生成密钥对的方式
@@ -335,6 +334,7 @@ public class KeyManagementService {
      * @return 32字节的种子
      * @throws CryptoException 如果提取失败
      */
+    @SuppressWarnings("unused")
     private byte[] extractSeedFromPKCS8(byte[] pkcs8Bytes) throws CryptoException {
         try {
             // PKCS#8 Ed25519私钥结构
@@ -397,24 +397,6 @@ public class KeyManagementService {
         }
     }
     
-    /**
-     * 从私钥提取公钥字节
-     * 
-     * @param privateKey 私钥
-     * @return 公钥字节数组
-     * @throws CryptoException 如果提取失败
-     */
-    private byte[] extractPublicKeyBytes(PrivateKey privateKey) throws CryptoException {
-        try {
-            // 对于Ed25519，私钥包含公钥信息
-            // 这里需要根据具体的实现来提取公钥字节
-            // 简化实现：生成临时密钥对来获取公钥
-            Ed25519KeyPair tempKeyPair = Ed25519KeyPair.generate();
-            return tempKeyPair.getPublicKeyBytes();
-        } catch (Exception e) {
-            throw new CryptoException("Failed to extract public key bytes from private key", e);
-        }
-    }
     
     /**
      * 验证十六进制字符串格式

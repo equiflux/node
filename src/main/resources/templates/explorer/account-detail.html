@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>账户详情 - Equiflux Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            color: #007bff !important;
+        }
+        .hash-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .search-box {
+            max-width: 500px;
+        }
+        .copy-btn {
+            cursor: pointer;
+            color: #007bff;
+        }
+        .copy-btn:hover {
+            color: #0056b3;
+        }
+        .balance-amount {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .stake-amount {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .super-node-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/explorer/">
+                <i class="fas fa-cube"></i> Equiflux Explorer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/dashboard">
+                            <i class="fas fa-tachometer-alt"></i> 仪表板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/blocks">
+                            <i class="fas fa-cubes"></i> 区块
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/transactions">
+                            <i class="fas fa-exchange-alt"></i> 交易
+                        </a>
+                    </li>
+                </ul>
+                <form class="d-flex search-box" id="searchForm">
+                    <input class="form-control me-2" type="search" placeholder="搜索区块、交易或地址..." id="searchInput">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <div class="container mt-4">
+        <!-- 加载状态 -->
+        <div id="loadingState" class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2">正在加载账户详情...</p>
+        </div>
+
+        <!-- 账户详情 -->
+        <div id="accountDetail" style="display: none;">
+            <!-- 账户基本信息 -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user"></i> 账户信息
+                    </h5>
+                    <span id="superNodeBadge" class="badge super-node-badge" style="display: none;">
+                        <i class="fas fa-crown"></i> 超级节点
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>地址:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="accountAddress">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('accountAddress')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>公钥:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="publicKey">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('publicKey')"></i>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Nonce:</strong></td>
+                                    <td id="nonce">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>最后更新:</strong></td>
+                                    <td class="timestamp" id="lastUpdated">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 余额和质押信息 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-wallet"></i> 账户余额
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h3 class="balance-amount" id="balance">-</h3>
+                            <p class="text-muted">EQX</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-lock"></i> 质押金额
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h3 class="stake-amount" id="stakeAmount">-</h3>
+                            <p class="text-muted">EQX</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 交易历史 -->
+            <div class="card mb-4" id="transactionsCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> 交易历史
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="transactionsList">
+                        <!-- 交易将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 -->
+        <div id="errorState" class="text-center" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 加载账户详情失败
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            const address = window.location.pathname.split('/').pop();
+            loadAccountDetail(address);
+        });
+
+        // 加载账户详情
+        async function loadAccountDetail(address) {
+            try {
+                showLoading();
+                const response = await fetch(`/explorer/api/account/${address}`);
+                if (response.ok) {
+                    const account = await response.json();
+                    displayAccountDetail(account);
+                    loadAccountTransactions(address);
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                console.error('Failed to load account detail:', error);
+                showError();
+            }
+        }
+
+        // 显示账户详情
+        function displayAccountDetail(account) {
+            // 基本信息
+            document.getElementById('accountAddress').textContent = account.address;
+            document.getElementById('publicKey').textContent = account.publicKey;
+            document.getElementById('nonce').textContent = account.nonce;
+            document.getElementById('lastUpdated').textContent = new Date(account.lastUpdated).toLocaleString();
+
+            // 余额和质押
+            document.getElementById('balance').textContent = (account.balance / 1000000).toFixed(4);
+            document.getElementById('stakeAmount').textContent = (account.stakeAmount / 1000000).toFixed(4);
+
+            // 超级节点标识
+            if (account.isSuperNode) {
+                document.getElementById('superNodeBadge').style.display = 'inline-block';
+            }
+
+            hideLoading();
+        }
+
+        // 加载账户交易
+        async function loadAccountTransactions(address) {
+            try {
+                const response = await fetch(`/explorer/api/transactions/address/${address}?page=0&size=10`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.transactions && data.transactions.length > 0) {
+                        displayAccountTransactions(data.transactions);
+                        document.getElementById('transactionsCard').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load account transactions:', error);
+            }
+        }
+
+        // 显示账户交易
+        function displayAccountTransactions(transactions) {
+            const container = document.getElementById('transactionsList');
+            
+            const transactionsHtml = transactions.map(tx => {
+                const timestamp = new Date(tx.timestamp).toLocaleString();
+                return `
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>交易哈希:</strong><br>
+                                    <span class="hash-text">${tx.hash.substring(0, 20)}...</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>发送方:</strong><br>
+                                    <span class="hash-text">${tx.from.substring(0, 16)}...</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>接收方:</strong><br>
+                                    <span class="hash-text">${tx.to.substring(0, 16)}...</span>
+                                </div>
+                                <div class="col-md-2">
+                                    <strong>金额:</strong><br>
+                                    ${(tx.amount / 1000000).toFixed(4)} EQX
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>手续费:</strong> ${tx.fee} EQX
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>时间:</strong> <span class="timestamp">${timestamp}</span>
+                                </div>
+                            </div>
+                            <div class="text-end mt-2">
+                                <a href="/explorer/transaction/${tx.hash}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye"></i> 查看详情
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = transactionsHtml;
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('accountDetail').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('accountDetail').style.display = 'block';
+        }
+
+        // 显示错误
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('accountDetail').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // 显示复制成功提示
+                const btn = element.nextElementSibling;
+                const originalClass = btn.className;
+                btn.className = 'fas fa-check text-success ms-2';
+                
+                setTimeout(function() {
+                    btn.className = originalClass;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // 搜索功能
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = `/explorer/search?q=${encodeURIComponent(query)}`;
+            }
+        });
+    </script>
+</body>
+</html>

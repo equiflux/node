@@ -76,8 +76,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(testPublicKeyHex, response.getBody().getPublicKeyHex());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(testPublicKeyHex, responseBody.getPublicKeyHex());
         
         verify(walletService).createWallet(testPassword);
     }
@@ -94,8 +96,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertFalse(response.getBody().isSuccess());
-        assertEquals("Test error", response.getBody().getMessage());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertFalse(responseBody.isSuccess());
+        assertEquals("Test error", responseBody.getMessage());
     }
     
     @Test
@@ -111,8 +115,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(testPublicKeyHex, response.getBody().getPublicKeyHex());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(testPublicKeyHex, responseBody.getPublicKeyHex());
         
         verify(walletService).createWalletFromPrivateKey(privateKeyHex, testPassword);
     }
@@ -129,8 +135,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("Wallet unlocked successfully", response.getBody().getMessage());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals("Wallet unlocked successfully", responseBody.getMessage());
         
         verify(walletService).unlockWallet(testPublicKeyHex, testPassword);
     }
@@ -147,8 +155,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertFalse(response.getBody().isSuccess());
-        assertEquals("Invalid password", response.getBody().getMessage());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertFalse(responseBody.isSuccess());
+        assertEquals("Invalid password", responseBody.getMessage());
     }
     
     @Test
@@ -162,8 +172,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("Wallet locked successfully", response.getBody().getMessage());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals("Wallet locked successfully", responseBody.getMessage());
         
         verify(walletService).lockWallet(testPublicKeyHex);
     }
@@ -179,8 +191,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(testPublicKeyHex, response.getBody().getPublicKeyHex());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(testPublicKeyHex, responseBody.getPublicKeyHex());
         
         verify(walletService).getWalletInfo(testPublicKeyHex);
     }
@@ -211,9 +225,11 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(1, response.getBody().getCount());
-        assertEquals(1, response.getBody().getWallets().size());
+        WalletListResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(1, responseBody.getCount());
+        assertEquals(1, responseBody.getWallets().size());
         
         verify(walletService).getAllWallets();
     }
@@ -229,9 +245,11 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(1000L, response.getBody().getBalance());
-        assertEquals(testPublicKeyHex, response.getBody().getPublicKeyHex());
+        BalanceResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(1000L, responseBody.getBalance());
+        assertEquals(testPublicKeyHex, responseBody.getPublicKeyHex());
         
         verify(walletService).getBalance(testPublicKeyHex);
     }
@@ -247,11 +265,13 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(testPublicKeyHex, response.getBody().getPublicKeyHex());
-        assertEquals(1000L, response.getBody().getBalance());
-        assertEquals(1L, response.getBody().getNonce());
-        assertEquals(500L, response.getBody().getStakeAmount());
+        AccountStateResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(testPublicKeyHex, responseBody.getPublicKeyHex());
+        assertEquals(1000L, responseBody.getBalance());
+        assertEquals(1L, responseBody.getNonce());
+        assertEquals(500L, responseBody.getStakeAmount());
         
         verify(walletService).getAccountState(testPublicKeyHex);
     }
@@ -267,10 +287,12 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(0L, response.getBody().getBalance());
-        assertEquals(0L, response.getBody().getNonce());
-        assertEquals(0L, response.getBody().getStakeAmount());
+        AccountStateResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(0L, responseBody.getBalance());
+        assertEquals(0L, responseBody.getNonce());
+        assertEquals(0L, responseBody.getStakeAmount());
     }
     
     @Test
@@ -294,10 +316,12 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
+        TransactionResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
         // 验证返回的hash不为空，而不是硬编码期望值
-        assertNotNull(response.getBody().getTransactionHash());
-        assertFalse(response.getBody().getTransactionHash().isEmpty());
+        assertNotNull(responseBody.getTransactionHash());
+        assertFalse(responseBody.getTransactionHash().isEmpty());
 
         verify(walletService).buildTransferTransaction(testPublicKeyHex, toPublicKeyHex, amount, fee, testPassword);
     }
@@ -322,10 +346,12 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
+        TransactionResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
         // 验证返回的hash不为空，而不是硬编码期望值
-        assertNotNull(response.getBody().getTransactionHash());
-        assertFalse(response.getBody().getTransactionHash().isEmpty());
+        assertNotNull(responseBody.getTransactionHash());
+        assertFalse(responseBody.getTransactionHash().isEmpty());
 
         verify(walletService).buildStakeTransaction(testPublicKeyHex, stakeAmount, fee, testPassword);
     }
@@ -351,10 +377,12 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals(transactionHash, response.getBody().getTransactionHash());
-        assertEquals("confirmed", response.getBody().getState());
-        assertEquals(100L, response.getBody().getBlockHeight());
+        TransactionStatusResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals(transactionHash, responseBody.getTransactionHash());
+        assertEquals("confirmed", responseBody.getState());
+        assertEquals(100L, responseBody.getBlockHeight());
         
         verify(walletService).getTransactionStatus(transactionHash);
     }
@@ -371,9 +399,11 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("not_found", response.getBody().getState());
-        assertEquals("Transaction not found", response.getBody().getMessage());
+        TransactionStatusResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals("not_found", responseBody.getState());
+        assertEquals("Transaction not found", responseBody.getMessage());
     }
     
     @Test
@@ -391,8 +421,10 @@ class WalletRpcControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("Password changed successfully", response.getBody().getMessage());
+        WalletResponseDto responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertTrue(responseBody.isSuccess());
+        assertEquals("Password changed successfully", responseBody.getMessage());
         
         verify(walletService).changePassword(testPublicKeyHex, oldPassword, newPassword);
     }

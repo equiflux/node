@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * PoW矿工

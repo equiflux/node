@@ -1,6 +1,5 @@
 package io.equiflux.node.wallet.service;
 
-import io.equiflux.node.crypto.HashUtils;
 import io.equiflux.node.exception.CryptoException;
 import io.equiflux.node.exception.WalletException;
 import org.slf4j.Logger;

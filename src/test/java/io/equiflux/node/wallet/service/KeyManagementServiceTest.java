@@ -1,13 +1,10 @@
 package io.equiflux.node.wallet.service;
 
-import io.equiflux.node.crypto.Ed25519KeyPair;
 import io.equiflux.node.exception.WalletException;
 import io.equiflux.node.wallet.model.WalletKeyPair;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;

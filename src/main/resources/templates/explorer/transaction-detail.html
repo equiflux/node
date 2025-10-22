@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易详情 - Equiflux Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            color: #007bff !important;
+        }
+        .hash-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .search-box {
+            max-width: 500px;
+        }
+        .copy-btn {
+            cursor: pointer;
+            color: #007bff;
+        }
+        .copy-btn:hover {
+            color: #0056b3;
+        }
+        .amount-positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/explorer/">
+                <i class="fas fa-cube"></i> Equiflux Explorer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/dashboard">
+                            <i class="fas fa-tachometer-alt"></i> 仪表板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/blocks">
+                            <i class="fas fa-cubes"></i> 区块
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/transactions">
+                            <i class="fas fa-exchange-alt"></i> 交易
+                        </a>
+                    </li>
+                </ul>
+                <form class="d-flex search-box" id="searchForm">
+                    <input class="form-control me-2" type="search" placeholder="搜索区块、交易或地址..." id="searchInput">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <div class="container mt-4">
+        <!-- 加载状态 -->
+        <div id="loadingState" class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2">正在加载交易详情...</p>
+        </div>
+
+        <!-- 交易详情 -->
+        <div id="transactionDetail" style="display: none;">
+            <!-- 交易基本信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt"></i> 交易信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>交易哈希:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="transactionHash">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('transactionHash')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>发送方:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="fromAddress">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('fromAddress')"></i>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>接收方:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="toAddress">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('toAddress')"></i>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>金额:</strong></td>
+                                    <td class="amount-positive" id="amount">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>手续费:</strong></td>
+                                    <td id="fee">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Nonce:</strong></td>
+                                    <td id="nonce">-</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>时间戳:</strong></td>
+                                    <td class="timestamp" id="timestamp">-</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 签名信息 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-signature"></i> 签名信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>签名:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="signature">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('signature')"></i>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据信息 -->
+            <div class="card mb-4" id="dataCard" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-database"></i> 交易数据
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>数据:</strong></td>
+                                    <td>
+                                        <span class="hash-text" id="data">-</span>
+                                        <i class="fas fa-copy copy-btn ms-2" onclick="copyToClipboard('data')"></i>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 -->
+        <div id="errorState" class="text-center" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 加载交易详情失败
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.pathname.split('/').pop();
+            loadTransactionDetail(hash);
+        });
+
+        // 加载交易详情
+        async function loadTransactionDetail(hash) {
+            try {
+                showLoading();
+                const response = await fetch(`/explorer/api/transaction/${hash}`);
+                if (response.ok) {
+                    const transaction = await response.json();
+                    displayTransactionDetail(transaction);
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                console.error('Failed to load transaction detail:', error);
+                showError();
+            }
+        }
+
+        // 显示交易详情
+        function displayTransactionDetail(transaction) {
+            // 基本信息
+            document.getElementById('transactionHash').textContent = transaction.hash;
+            document.getElementById('fromAddress').textContent = transaction.from;
+            document.getElementById('toAddress').textContent = transaction.to;
+            document.getElementById('amount').textContent = (transaction.amount / 1000000).toFixed(4) + ' EQX';
+            document.getElementById('fee').textContent = transaction.fee + ' EQX';
+            document.getElementById('nonce').textContent = transaction.nonce;
+            document.getElementById('timestamp').textContent = new Date(transaction.timestamp).toLocaleString();
+
+            // 签名信息
+            document.getElementById('signature').textContent = transaction.signature || '-';
+
+            // 数据信息
+            if (transaction.data && transaction.data !== '-') {
+                document.getElementById('data').textContent = transaction.data;
+                document.getElementById('dataCard').style.display = 'block';
+            }
+
+            hideLoading();
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('transactionDetail').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('transactionDetail').style.display = 'block';
+        }
+
+        // 显示错误
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('transactionDetail').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // 显示复制成功提示
+                const btn = element.nextElementSibling;
+                const originalClass = btn.className;
+                btn.className = 'fas fa-check text-success ms-2';
+                
+                setTimeout(function() {
+                    btn.className = originalClass;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+
+        // 搜索功能
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = `/explorer/search?q=${encodeURIComponent(query)}`;
+            }
+        });
+    </script>
+</body>
+</html>

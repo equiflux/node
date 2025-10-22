@@ -6,12 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.equiflux</groupId>
-    <artifactId>equiflux-core</artifactId>
+    <artifactId>equiflux-node</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Equiflux Core</name>
-    <description>Equiflux公链核心实现 - 三层混合共识协议</description>
+    <name>Equiflux Node</name>
+    <description>Equiflux公链节点实现 - 三层混合共识协议</description>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>

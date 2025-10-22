@@ -1,0 +1,255 @@
+# Equiflux Node 生产环境 Docker Compose 配置
+version: '3.8'
+
+services:
+  # Equiflux节点
+  equiflux-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: ghcr.io/equiflux/node:${EQUIFLUX_VERSION:-latest}
+    container_name: equiflux-node
+    restart: unless-stopped
+    
+    # 环境变量
+    env_file:
+      - .env.prod
+    
+    # 端口映射
+    ports:
+      - "${RPC_PORT:-8080}:8080"
+      - "${MANAGEMENT_PORT:-8081}:8081"
+    
+    # 卷挂载
+    volumes:
+      - equiflux-data:/app/data
+      - equiflux-logs:/app/logs
+      - equiflux-config:/app/config
+      - /etc/localtime:/etc/localtime:ro
+    
+    # 网络配置
+    networks:
+      - equiflux-network
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '2.0'
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # 依赖服务
+    depends_on:
+      - prometheus
+      - grafana
+    
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    
+    # 安全配置
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:noexec,nosuid,size=1g
+
+  # Prometheus监控
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: equiflux-prometheus
+    restart: unless-stopped
+    
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    
+    networks:
+      - equiflux-network
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Grafana可视化
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: equiflux-grafana
+    restart: unless-stopped
+    
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    networks:
+      - equiflux-network
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    
+    depends_on:
+      - prometheus
+
+  # Node Exporter (系统监控)
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: equiflux-node-exporter
+    restart: unless-stopped
+    
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    
+    networks:
+      - equiflux-network
+    
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # Log Aggregation (可选)
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: equiflux-loki
+    restart: unless-stopped
+    
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    
+    volumes:
+      - loki-data:/loki
+      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+    
+    networks:
+      - equiflux-network
+    
+    command: -config.file=/etc/loki/local-config.yaml
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Promtail (日志收集)
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: equiflux-promtail
+    restart: unless-stopped
+    
+    volumes:
+      - equiflux-logs:/var/log/equiflux:ro
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+    
+    networks:
+      - equiflux-network
+    
+    command: -config.file=/etc/promtail/config.yml
+    
+    depends_on:
+      - loki
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+# 网络配置
+networks:
+  equiflux-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 卷配置
+volumes:
+  equiflux-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}
+  
+  equiflux-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOGS_PATH:-./logs}
+  
+  equiflux-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CONFIG_PATH:-./config}
+  
+  prometheus-data:
+    driver: local
+  
+  grafana-data:
+    driver: local
+  
+  loki-data:
+    driver: local

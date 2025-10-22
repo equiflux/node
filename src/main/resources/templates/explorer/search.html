@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索结果 - Equiflux Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            color: #007bff !important;
+        }
+        .hash-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .search-box {
+            max-width: 500px;
+        }
+        .search-result-card {
+            transition: transform 0.2s;
+        }
+        .search-result-card:hover {
+            transform: translateY(-2px);
+        }
+        .result-type-badge {
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/explorer/">
+                <i class="fas fa-cube"></i> Equiflux Explorer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/dashboard">
+                            <i class="fas fa-tachometer-alt"></i> 仪表板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/blocks">
+                            <i class="fas fa-cubes"></i> 区块
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/explorer/transactions">
+                            <i class="fas fa-exchange-alt"></i> 交易
+                        </a>
+                    </li>
+                </ul>
+                <form class="d-flex search-box" id="searchForm">
+                    <input class="form-control me-2" type="search" placeholder="搜索区块、交易或地址..." id="searchInput">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <div class="container mt-4">
+        <!-- 搜索框 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-search"></i> 搜索结果
+                        </h5>
+                        <form id="searchFormMain">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="搜索区块、交易或地址..." id="searchInputMain">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-search"></i> 搜索
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div id="loadingState" class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">搜索中...</span>
+            </div>
+            <p class="mt-2">正在搜索...</p>
+        </div>
+
+        <!-- 搜索结果 -->
+        <div id="searchResults" style="display: none;">
+            <!-- 搜索结果将在这里动态生成 -->
+        </div>
+
+        <!-- 无结果状态 -->
+        <div id="noResults" class="text-center" style="display: none;">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 未找到相关结果
+            </div>
+        </div>
+
+        <!-- 错误状态 -->
+        <div id="errorState" class="text-center" style="display: none;">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> 搜索失败
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            
+            if (query) {
+                document.getElementById('searchInputMain').value = query;
+                performSearch(query);
+            }
+        });
+
+        // 执行搜索
+        async function performSearch(query) {
+            try {
+                showLoading();
+                const response = await fetch(`/explorer/api/search?q=${encodeURIComponent(query)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    displaySearchResults(result);
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                console.error('Failed to search:', error);
+                showError();
+            }
+        }
+
+        // 显示搜索结果
+        function displaySearchResults(result) {
+            const container = document.getElementById('searchResults');
+            
+            if (!result.type) {
+                showNoResults();
+                return;
+            }
+            
+            let resultHtml = '';
+            
+            if (result.blockResult) {
+                resultHtml += displayBlockResult(result.blockResult);
+            }
+            
+            if (result.transactionResult) {
+                resultHtml += displayTransactionResult(result.transactionResult);
+            }
+            
+            if (result.accountResult) {
+                resultHtml += displayAccountResult(result.accountResult);
+            }
+            
+            container.innerHTML = resultHtml;
+            hideLoading();
+        }
+
+        // 显示区块搜索结果
+        function displayBlockResult(block) {
+            const timestamp = new Date(block.timestamp).toLocaleString();
+            return `
+                <div class="search-result-card card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cube"></i> 区块搜索结果
+                        </h5>
+                        <span class="badge bg-primary result-type-badge">区块</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <h6>高度</h6>
+                                <p class="hash-text">${block.height.toLocaleString()}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6>哈希</h6>
+                                <p class="hash-text">${block.hash.substring(0, 20)}...</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6>出块者</h6>
+                                <p class="hash-text">${block.proposer.substring(0, 16)}...</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6>交易数</h6>
+                                <p>${block.transactionCount}</p>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>轮次:</strong> ${block.round}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>时间:</strong> <span class="timestamp">${timestamp}</span>
+                            </div>
+                        </div>
+                        <div class="text-end mt-3">
+                            <a href="/explorer/block/${block.hash}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i> 查看区块详情
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示交易搜索结果
+        function displayTransactionResult(transaction) {
+            const timestamp = new Date(transaction.timestamp).toLocaleString();
+            return `
+                <div class="search-result-card card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exchange-alt"></i> 交易搜索结果
+                        </h5>
+                        <span class="badge bg-success result-type-badge">交易</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>交易哈希</h6>
+                                <p class="hash-text">${transaction.hash.substring(0, 20)}...</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>发送方</h6>
+                                <p class="hash-text">${transaction.from.substring(0, 16)}...</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>接收方</h6>
+                                <p class="hash-text">${transaction.to.substring(0, 16)}...</p>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-4">
+                                <strong>金额:</strong> ${(transaction.amount / 1000000).toFixed(4)} EQX
+                            </div>
+                            <div class="col-md-4">
+                                <strong>手续费:</strong> ${transaction.fee} EQX
+                            </div>
+                            <div class="col-md-4">
+                                <strong>时间:</strong> <span class="timestamp">${timestamp}</span>
+                            </div>
+                        </div>
+                        <div class="text-end mt-3">
+                            <a href="/explorer/transaction/${transaction.hash}" class="btn btn-success">
+                                <i class="fas fa-eye"></i> 查看交易详情
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示账户搜索结果
+        function displayAccountResult(account) {
+            const lastUpdated = new Date(account.lastUpdated).toLocaleString();
+            const superNodeBadge = account.isSuperNode ? 
+                '<span class="badge bg-warning ms-2"><i class="fas fa-crown"></i> 超级节点</span>' : '';
+            
+            return `
+                <div class="search-result-card card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user"></i> 账户搜索结果
+                            ${superNodeBadge}
+                        </h5>
+                        <span class="badge bg-info result-type-badge">账户</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6>地址</h6>
+                                <p class="hash-text">${account.address.substring(0, 20)}...</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>余额</h6>
+                                <p class="text-success"><strong>${(account.balance / 1000000).toFixed(4)} EQX</strong></p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>质押金额</h6>
+                                <p class="text-warning"><strong>${(account.stakeAmount / 1000000).toFixed(4)} EQX</strong></p>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <strong>Nonce:</strong> ${account.nonce}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>最后更新:</strong> <span class="timestamp">${lastUpdated}</span>
+                            </div>
+                        </div>
+                        <div class="text-end mt-3">
+                            <a href="/explorer/account/${account.address}" class="btn btn-info">
+                                <i class="fas fa-eye"></i> 查看账户详情
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('errorState').style.display = 'none';
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'block';
+        }
+
+        // 显示无结果
+        function showNoResults() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('noResults').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+        }
+
+        // 显示错误
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('noResults').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+        }
+
+        // 搜索表单提交
+        document.getElementById('searchFormMain').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('searchInputMain').value.trim();
+            if (query) {
+                window.location.href = `/explorer/search?q=${encodeURIComponent(query)}`;
+            }
+        });
+
+        // 导航栏搜索表单提交
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = `/explorer/search?q=${encodeURIComponent(query)}`;
+            }
+        });
+    </script>
+</body>
+</html>

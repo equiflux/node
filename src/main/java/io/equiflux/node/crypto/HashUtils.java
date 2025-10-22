@@ -26,6 +26,7 @@ import java.util.Arrays;
 public final class HashUtils {
     
     private static final String SHA256_ALGORITHM = "SHA-256";
+    private static final String SHA3_256_ALGORITHM = "SHA3-256";
     
     // 私有构造函数，防止实例化
     private HashUtils() {
@@ -232,5 +233,125 @@ public final class HashUtils {
             bytes[i] = (byte) Integer.parseInt(hexString.substring(index, index + 2), 16);
         }
         return bytes;
+    }
+    
+    /**
+     * 计算SHA-3-256哈希值
+     * 
+     * @param input 输入数据
+     * @return 32字节的SHA-3-256哈希值
+     * @throws CryptoException 如果哈希计算失败
+     */
+    public static byte[] sha3_256(byte[] input) {
+        if (input == null) {
+            throw new IllegalArgumentException("Input cannot be null");
+        }
+        
+        try {
+            MessageDigest digest = MessageDigest.getInstance(SHA3_256_ALGORITHM);
+            return digest.digest(input);
+        } catch (NoSuchAlgorithmException e) {
+            throw new CryptoException("SHA-3-256 algorithm not available", e);
+        }
+    }
+    
+    /**
+     * 计算SHA-3-256哈希值（字符串输入）
+     * 
+     * @param input 输入字符串
+     * @return 32字节的SHA-3-256哈希值
+     * @throws CryptoException 如果哈希计算失败
+     */
+    public static byte[] sha3_256(String input) {
+        if (input == null) {
+            throw new IllegalArgumentException("Input string cannot be null");
+        }
+        return sha3_256(input.getBytes());
+    }
+    
+    /**
+     * 计算HMAC-SHA256
+     * 
+     * @param key 密钥
+     * @param data 数据
+     * @return 32字节的HMAC-SHA256值
+     * @throws CryptoException 如果HMAC计算失败
+     */
+    public static byte[] hmacSha256(byte[] key, byte[] data) {
+        if (key == null) {
+            throw new IllegalArgumentException("Key cannot be null");
+        }
+        if (data == null) {
+            throw new IllegalArgumentException("Data cannot be null");
+        }
+        
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            javax.crypto.spec.SecretKeySpec secretKeySpec = new javax.crypto.spec.SecretKeySpec(key, "HmacSHA256");
+            mac.init(secretKeySpec);
+            return mac.doFinal(data);
+        } catch (Exception e) {
+            throw new CryptoException("HMAC-SHA256 calculation failed", e);
+        }
+    }
+    
+    /**
+     * 计算HMAC-SHA256（字符串输入）
+     * 
+     * @param key 密钥字符串
+     * @param data 数据字符串
+     * @return 32字节的HMAC-SHA256值
+     * @throws CryptoException 如果HMAC计算失败
+     */
+    public static byte[] hmacSha256(String key, String data) {
+        if (key == null) {
+            throw new IllegalArgumentException("Key string cannot be null");
+        }
+        if (data == null) {
+            throw new IllegalArgumentException("Data string cannot be null");
+        }
+        return hmacSha256(key.getBytes(), data.getBytes());
+    }
+    
+    /**
+     * 生成随机字节数组
+     * 
+     * @param length 长度
+     * @return 随机字节数组
+     * @throws CryptoException 如果随机数生成失败
+     */
+    public static byte[] generateRandomBytes(int length) {
+        if (length <= 0) {
+            throw new IllegalArgumentException("Length must be positive");
+        }
+        
+        try {
+            java.security.SecureRandom random = java.security.SecureRandom.getInstanceStrong();
+            byte[] bytes = new byte[length];
+            random.nextBytes(bytes);
+            return bytes;
+        } catch (Exception e) {
+            throw new CryptoException("Failed to generate random bytes", e);
+        }
+    }
+    
+    /**
+     * 生成随机盐值
+     * 
+     * @return 16字节的随机盐值
+     * @throws CryptoException 如果随机数生成失败
+     */
+    public static byte[] generateSalt() {
+        return generateRandomBytes(16);
+    }
+    
+    /**
+     * 生成随机IV（初始化向量）
+     * 
+     * @return 12字节的随机IV
+     * @throws CryptoException 如果随机数生成失败
+     */
+    public static byte[] generateIV() {
+        return generateRandomBytes(12);
     }
 }

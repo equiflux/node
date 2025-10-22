@@ -1,6 +1,5 @@
 package io.equiflux.node.crypto;
 
-import io.equiflux.node.exception.CryptoException;
 import io.equiflux.node.model.VRFOutput;
 import io.equiflux.node.model.VRFProof;
 import org.slf4j.Logger;
@@ -8,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.security.PublicKey;
-import java.util.Objects;
 
 /**
  * VRF计算器

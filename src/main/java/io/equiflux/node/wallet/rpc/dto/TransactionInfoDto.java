@@ -1,7 +1,6 @@
 package io.equiflux.node.wallet.rpc.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * 交易信息DTO

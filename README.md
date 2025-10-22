@@ -1,16 +1,35 @@
-# Equiflux Core
+# Equiflux Node
 
-Equiflux公链核心实现 - 基于三层混合共识机制的高性能区块链
+Equiflux公链节点实现 - 基于三层混合共识机制的高性能区块链
 
 [![Java](https://img.shields.io/badge/Java-21+-blue.svg)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.0-green.svg)](https://spring.io/projects/spring-boot)
 [![Maven](https://img.shields.io/badge/Maven-3.8+-red.svg)](https://maven.apache.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/equiflux/node)
 
 ## 📋 项目概述
 
 Equiflux是一个创新的区块链公链，采用**PoS + VRF + 轻量级PoW**的三层混合共识机制，目标实现约**1800 TPS**的性能和**8秒确认时间**。
+
+### 🚀 快速部署
+
+```bash
+# 一键部署 (推荐)
+git clone https://github.com/equiflux/node.git
+cd equiflux/node
+./quick-start.sh
+
+# 或使用Makefile
+make quick-start
+```
+
+**服务地址**:
+- RPC API: http://localhost:8080
+- 管理端点: http://localhost:8081/actuator/health  
+- Grafana: http://localhost:3000 (admin/Equiflux2024!@#)
+- Prometheus: http://localhost:9090
 
 ### 🎯 核心创新
 
@@ -154,40 +173,130 @@ equiflux-node/
 
 ### 环境要求
 
+#### 开发环境
 - **Java 21 LTS** 或更高版本
 - **Maven 3.8+**
 - **Git**
 
-### 1. 克隆项目
+#### 生产环境 (Docker部署)
+- **Docker 20.10+**
+- **Docker Compose 2.0+**
+- **Make** (可选，用于便捷操作)
 
+### 方式一：Docker部署 (推荐)
+
+#### 一键部署
+```bash
+# 克隆项目
+git clone https://github.com/equiflux/node.git
+cd equiflux/node
+
+# 一键启动
+./quick-start.sh
+
+# 或使用Makefile
+make quick-start
+```
+
+#### 手动部署
+```bash
+# 1. 环境配置
+cp env.prod.template .env.prod
+vim .env.prod
+
+# 2. 构建镜像
+make docker-build
+
+# 3. 启动服务
+make deploy-up
+
+# 4. 验证部署
+make health
+```
+
+#### 服务访问地址
+- **RPC API**: http://localhost:8080
+- **管理端点**: http://localhost:8081/actuator/health
+- **Grafana**: http://localhost:3000 (admin/Equiflux2024!@#)
+- **Prometheus**: http://localhost:9090
+
+### 方式二：本地开发
+
+#### 1. 克隆项目
 ```bash
 git clone https://github.com/equiflux/node.git
 cd equiflux/node
 ```
 
-### 2. 编译项目
-
+#### 2. 编译项目
 ```bash
 mvn clean compile
 ```
 
-### 3. 运行测试
-
+#### 3. 运行测试
 ```bash
 mvn test
 ```
 
-### 4. 启动节点
-
+#### 4. 启动节点
 ```bash
 mvn spring-boot:run
 ```
 
-### 5. 运行演示程序
-
+#### 5. 运行演示程序
 ```bash
 mvn exec:java -Dexec.mainClass="io.equiflux.node.demo.EquifluxDemo"
 ```
+
+## 🐳 Docker部署
+
+### 部署架构
+
+Equiflux Node提供完整的Docker部署方案，包括：
+
+- **Equiflux Node**: 公链节点
+- **Prometheus**: 指标收集和存储
+- **Grafana**: 监控数据可视化
+- **Loki + Promtail**: 日志聚合和查询
+- **Node Exporter**: 系统指标收集
+
+### 核心特性
+
+- ✅ **生产就绪**: 完整的生产环境配置
+- ✅ **监控完善**: Prometheus + Grafana + Loki
+- ✅ **安全优化**: 非root用户、资源限制、网络安全
+- ✅ **运维友好**: 丰富的Makefile命令、自动化脚本
+- ✅ **可扩展**: 支持多节点部署、负载均衡
+
+### 快速命令
+
+```bash
+# 一键启动
+make quick-start
+
+# 查看状态
+make status
+
+# 查看日志
+make logs
+
+# 停止服务
+make deploy-down
+
+# 重启服务
+make deploy-restart
+
+# 备份数据
+make backup-data
+
+# 健康检查
+make health
+```
+
+### 详细文档
+
+- [Docker部署指南](DOCKER_DEPLOYMENT.md) - 完整的部署和运维文档
+- [Docker快速开始](DOCKER_README.md) - Docker部署概览
 
 ## 📊 项目完成度
 
@@ -203,6 +312,9 @@ mvn exec:java -Dexec.mainClass="io.equiflux.node.demo.EquifluxDemo"
 | **RPC接口** | 90% | RESTful API、JSON-RPC支持 |
 | **配置管理** | 100% | 完整的配置系统 |
 | **异常处理** | 100% | 完整的异常体系 |
+| **Docker部署** | 100% | 完整的Docker化部署方案 |
+| **监控系统** | 100% | Prometheus + Grafana + Loki |
+| **运维工具** | 100% | Makefile + 自动化脚本 |
 
 ### 🔄 开发中模块
 
@@ -211,6 +323,8 @@ mvn exec:java -Dexec.mainClass="io.equiflux.node.demo.EquifluxDemo"
 | **PoW模块** | 70% | 轻量级PoW实现，需要优化 |
 | **网络优化** | 60% | 性能优化和稳定性提升 |
 | **集成测试** | 50% | 端到端测试用例 |
+| **钱包服务** | 80% | 钱包功能基本完成 |
+| **区块浏览器** | 75% | Web界面基本完成 |
 
 ### 📈 测试覆盖率
 
@@ -220,6 +334,66 @@ mvn exec:java -Dexec.mainClass="io.equiflux.node.demo.EquifluxDemo"
   - 数据模型: 62%
   - 存储层: 40%
   - RPC服务: 79%
+  - 网络层: 35%
+  - 共识引擎: 45%
+
+## 🔧 运维和监控
+
+### 监控指标
+
+Equiflux Core提供完整的监控体系：
+
+#### 系统指标
+- CPU使用率
+- 内存使用情况
+- 磁盘I/O
+- 网络流量
+
+#### 应用指标
+- JVM堆内存
+- GC性能
+- HTTP请求响应时间
+- 线程池状态
+
+#### 业务指标
+- 区块高度
+- TPS (每秒交易数)
+- 共识状态
+- 节点连接数
+- VRF计算性能
+
+### 日志管理
+
+- **结构化日志**: JSON格式，便于解析
+- **日志聚合**: Loki + Promtail
+- **实时查询**: Grafana日志面板
+- **日志轮转**: 自动清理旧日志
+
+### 健康检查
+
+```bash
+# 检查服务健康状态
+make health
+
+# 查看详细状态
+make status
+
+# 查看实时日志
+make logs
+```
+
+### 数据备份
+
+```bash
+# 自动备份
+make backup-data
+
+# 恢复数据
+make restore-data BACKUP_FILE=backups/data_backup_20240101_120000.tar.gz
+
+# 清理数据 (危险操作)
+make clean-data
+```
 
 ## ⚙️ 配置说明
 
@@ -351,10 +525,13 @@ mvn jacoco:report
 
 ## 📚 文档
 
-- [技术白皮书](whitepaper.md) - 完整的技术方案
-- [开发计划](plan.md) - 详细的开发路线图
-- [解决方案文档](solution.md) - 核心技术实现
-- [存储层报告](STORAGE_LAYER_REPORT.md) - 存储层实现详情
+- [技术白皮书](doc/whitepaper.md) - 完整的技术方案
+- [开发计划](doc/plan.md) - 详细的开发路线图
+- [Docker部署指南](doc/DOCKER_DEPLOYMENT.md) - 完整的Docker部署和运维文档
+- [Docker快速开始](doc/DOCKER_README.md) - Docker部署概览
+- [存储层报告](doc/STORAGE_LAYER_REPORT.md) - 存储层实现详情
+- [钱包服务报告](doc/WALLET_SERVICE_COMPLETION_REPORT.md) - 钱包服务实现详情
+- [区块浏览器文档](doc/BLOCK_EXPLORER_README.md) - 区块浏览器使用指南
 
 ## 🤝 贡献指南
 
@@ -380,8 +557,11 @@ mvn jacoco:report
 ## 🔗 相关链接
 
 - **项目主页**: [Equiflux官网](https://equiflux.io)
-- **技术文档**: [技术白皮书](whitepaper.md)
+- **技术文档**: [技术白皮书](doc/whitepaper.md)
+- **Docker部署**: [Docker部署指南](doc/DOCKER_DEPLOYMENT.md)
 - **问题反馈**: [GitHub Issues](https://github.com/equiflux/node/issues)
+- **Docker Hub**: [equiflux/node](https://hub.docker.com/r/equiflux/node)
+- **GitHub Container Registry**: [ghcr.io/equiflux/node](https://github.com/equiflux/node/pkgs/container/node)
 
 ---
 

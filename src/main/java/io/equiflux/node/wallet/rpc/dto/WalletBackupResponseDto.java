@@ -1,6 +1,5 @@
 package io.equiflux.node.wallet.rpc.dto;
 
-import io.equiflux.node.wallet.model.WalletBackup;
 import java.time.LocalDateTime;
 
 /**

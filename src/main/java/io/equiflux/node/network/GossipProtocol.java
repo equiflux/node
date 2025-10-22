@@ -280,6 +280,12 @@ public class GossipProtocol {
             GOSSIP_INTERVAL_MS,
             TimeUnit.MILLISECONDS
         );
+        
+        // 使用网络配置调整Gossip参数
+        if (networkConfig.isEnableDebugLogging()) {
+            logger.info("Gossip协议配置: fanout={}, interval={}ms, maxRounds={}, ttl={}ms", 
+                       GOSSIP_FANOUT, GOSSIP_INTERVAL_MS, MAX_ROUNDS, MESSAGE_TTL_MS);
+        }
     }
     
     private void gossipMessage(GossipMessage message) {
@@ -411,8 +417,65 @@ public class GossipProtocol {
     }
     
     private void pullMessages() {
-        // TODO: 实现Pull模式的消息拉取
-        // 定期向邻居节点请求新消息
+        if (!running.get()) {
+            return;
+        }
+        
+        try {
+            List<PeerInfo> connectedPeers = networkService.getConnectedPeers();
+            if (connectedPeers.isEmpty()) {
+                return;
+            }
+            
+            // 随机选择几个节点进行Pull请求
+            Collections.shuffle(connectedPeers);
+            int pullCount = Math.min(3, connectedPeers.size());
+            
+            for (int i = 0; i < pullCount; i++) {
+                PeerInfo peer = connectedPeers.get(i);
+                requestMessagesFromPeer(peer);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Pull消息失败", e);
+        }
+    }
+    
+    /**
+     * 从指定节点请求消息
+     * 
+     * @param peer 节点信息
+     */
+    private void requestMessagesFromPeer(PeerInfo peer) {
+        try {
+            // 创建Pull请求消息
+            Map<String, Object> pullRequest = new HashMap<>();
+            pullRequest.put("type", "pull_request");
+            pullRequest.put("timestamp", System.currentTimeMillis());
+            pullRequest.put("requestedTypes", Arrays.asList(
+                GossipMessage.MessageType.BLOCK_PROPOSAL,
+                GossipMessage.MessageType.BLOCK_VOTE,
+                GossipMessage.MessageType.TRANSACTION,
+                GossipMessage.MessageType.VRF_ANNOUNCEMENT
+            ));
+            
+            NetworkMessage requestMessage = new NetworkMessage(
+                NetworkMessage.MessageType.PEER_DISCOVERY, // 复用消息类型
+                null, // 发送者将在发送时设置
+                System.currentTimeMillis(),
+                generateNonce(),
+                pullRequest,
+                new byte[64] // 签名将在发送时设置
+            );
+            
+            // 发送Pull请求
+            networkService.sendMessage(peer.getNodeId(), requestMessage);
+            
+            logger.debug("发送Pull请求到节点: {}", peer.getNodeId());
+            
+        } catch (Exception e) {
+            logger.warn("发送Pull请求失败: " + peer.getNodeId(), e);
+        }
     }
     
     private boolean isMessageExpired(GossipMessage message) {

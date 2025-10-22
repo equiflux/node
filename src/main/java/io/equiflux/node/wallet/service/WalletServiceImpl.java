@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.security.PublicKey;
 import java.util.List;
 import java.util.Optional;
 
@@ -88,6 +87,9 @@ public class WalletServiceImpl implements WalletService {
             
             logger.info("Private key exported successfully: publicKey={}", publicKeyHex);
             return privateKeyHex;
+        } catch (WalletException e) {
+            logger.error("Failed to export private key", e);
+            throw e; // 重新抛出WalletException，保持原始消息
         } catch (Exception e) {
             logger.error("Failed to export private key", e);
             throw new WalletException("Failed to export private key", e);

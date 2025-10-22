@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
-import java.util.Objects;
 
 /**
  * 难度计算器
@@ -40,7 +39,6 @@ public class DifficultyCalculator {
     // 难度调整参数
     private static final double ADJUSTMENT_FACTOR_MAX = 2.0;
     private static final double ADJUSTMENT_FACTOR_MIN = 0.5;
-    private static final int ADJUSTMENT_WINDOW = 10; // 每10个区块调整一次
     
     /**
      * 计算PoW难度

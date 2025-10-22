@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.security.PublicKey;
 import java.security.Signature;
-import java.util.Objects;
 
 /**
  * 签名验证器
