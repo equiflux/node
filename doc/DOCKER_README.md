@@ -1,8 +1,8 @@
-# Equiflux Core Docker 部署方案
+# Equiflux Node Docker 部署方案
 
 ## 📋 概述
 
-本项目提供了完整的Docker部署方案，包括Equiflux Core公链节点及其配套的监控、日志和运维工具。
+本项目提供了完整的Docker部署方案，包括Equiflux Node公链节点及其配套的监控、日志和运维工具。
 
 ## 🚀 快速开始
 
@@ -52,7 +52,7 @@ make health
 
 ## 🛠️ 核心组件
 
-### Equiflux Core
+### Equiflux Node
 - **端口**: 8080 (RPC), 8081 (管理)
 - **功能**: 公链核心节点，提供RPC API和共识服务
 - **资源**: 4-8GB内存，2-4CPU核心
@@ -243,7 +243,7 @@ make deploy-update
 
 - **文档**: [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
 - **问题反馈**: GitHub Issues
-- **技术支持**: support@equiflux.io
+- **技术支持**: master@equiflux.io
 
 ## 📄 许可证
 

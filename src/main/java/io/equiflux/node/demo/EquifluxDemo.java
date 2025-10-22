@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Equiflux Core 演示程序
+ * Equiflux Node 演示程序
  * 
  * <p>展示Equiflux共识引擎的基本功能：
  * <ul>
@@ -41,7 +41,7 @@ public class EquifluxDemo {
     @Bean
     public CommandLineRunner demo() {
         return args -> {
-            logger.info("=== Equiflux Core Demo ===");
+            logger.info("=== Equiflux Node Demo ===");
             
             // 1. 生成VRF密钥对
             logger.info("1. Generating VRF key pair...");

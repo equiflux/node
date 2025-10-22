@@ -341,7 +341,7 @@ make health
 
 ### 监控指标
 
-Equiflux Core提供完整的监控体系：
+Equiflux Node提供完整的监控体系：
 
 #### 系统指标
 - CPU使用率

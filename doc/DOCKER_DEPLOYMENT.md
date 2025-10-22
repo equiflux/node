@@ -1,10 +1,10 @@
-# Equiflux Core Docker 部署指南
+# Equiflux Node Docker 部署指南
 
 ## 概述
 
-本文档介绍如何使用Docker和Docker Compose部署Equiflux Core公链节点。部署方案包括：
+本文档介绍如何使用Docker和Docker Compose部署Equiflux Node公链节点。部署方案包括：
 
-- Equiflux Core节点
+- Equiflux Node节点
 - Prometheus监控
 - Grafana可视化
 - Loki日志聚合
@@ -96,7 +96,7 @@ make logs
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Equiflux Core | 8080 | RPC API |
+| Equiflux Node | 8080 | RPC API |
 | Management | 8081 | 健康检查和指标 |
 | Prometheus | 9090 | 监控数据 |
 | Grafana | 3000 | 可视化界面 |
@@ -425,9 +425,3 @@ server {
 - 安全事件响应
 - 性能问题排查
 
-## 联系支持
-
-如有问题，请联系：
-- 技术支持: support@equiflux.io
-- 文档反馈: docs@equiflux.io
-- 紧急联系: emergency@equiflux.io

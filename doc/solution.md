@@ -2556,24 +2556,8 @@ java -jar equiflux-wallet.jar vote \
 - 战略投资: Binance Labs / Coinbase Ventures
 - 天使投资: 多位区块链行业领袖
 
-### K. 联系方式
-
-**官方联系**
-- 邮箱: contact@equiflux.io
-- 技术支持: support@equiflux.io
-- 媒体合作: press@equiflux.io
-- 商务合作: business@equiflux.io
-
 **技术讨论**
 - GitHub Issues: https://github.com/equiflux/node/issues
-- 开发者论坛: https://forum.equiflux.io/dev
-- Stack Overflow: 标签 [equiflux]
-
-**社区管理**
-- Discord: 活跃度最高
-- Telegram: 中文社区
-- Twitter: 官方公告
-- Medium: 技术文章
 
 ---
 

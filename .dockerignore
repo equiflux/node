@@ -1,4 +1,4 @@
-# Equiflux Core .dockerignore
+# Equiflux Node .dockerignore
 # 优化Docker构建，排除不必要的文件
 
 # Git相关

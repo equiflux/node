@@ -222,8 +222,6 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" \
 
 如有问题，请联系：
 - **GitHub Issues**: [项目Issues](https://github.com/equiflux/node/issues)
-- **技术支持**: support@equiflux.io
-- **文档反馈**: docs@equiflux.io
 
 ## 🔗 相关链接
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Equiflux Core 快速启动脚本
+# Equiflux Node 快速启动脚本
 
 set -e
 
@@ -114,23 +114,23 @@ start_services() {
 wait_for_services() {
     log_info "等待服务就绪..."
     
-    # 等待Equiflux Core服务
+    # 等待Equiflux Node
     local max_attempts=30
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
         if curl -s http://localhost:8081/actuator/health &> /dev/null; then
-            log_success "Equiflux Core服务已就绪"
+            log_success "Equiflux Node服务已就绪"
             break
         fi
         
-        log_info "等待Equiflux Core服务启动... ($attempt/$max_attempts)"
+        log_info "等待Equiflux Node服务启动... ($attempt/$max_attempts)"
         sleep 10
         ((attempt++))
     done
     
     if [ $attempt -gt $max_attempts ]; then
-        log_error "Equiflux Core服务启动超时"
+        log_error "Equiflux Node服务启动超时"
         exit 1
     fi
     
@@ -178,7 +178,7 @@ show_service_info() {
 # 主函数
 main() {
     echo "=========================================="
-    echo "    Equiflux Core 快速启动脚本"
+    echo "    Equiflux Node 快速启动脚"
     echo "=========================================="
     echo ""
     

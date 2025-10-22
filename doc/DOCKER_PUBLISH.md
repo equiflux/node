@@ -151,9 +151,3 @@ services:
 - `latest`: 最新稳定版本
 - `dev`: 开发版本
 - `beta`: 测试版本
-
-## 📞 支持
-
-如需配置发布仓库或有其他问题，请联系：
-- 技术支持: support@equiflux.io
-- 运维团队: ops@equiflux.io

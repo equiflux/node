@@ -8,7 +8,7 @@ rule_files:
   # - "second_rules.yml"
 
 scrape_configs:
-  # Equiflux Core应用监控
+  # Equiflux Node应用监控
   - job_name: 'equiflux-node'
     static_configs:
       - targets: ['equiflux-node:8081']

@@ -212,7 +212,7 @@ mvn test
 
 - 项目主页: https://github.com/equiflux/node
 - 问题反馈: https://github.com/equiflux/node/issues
-- 邮箱: contact@equiflux.org
+- 邮箱: master@equiflux.io
 
 ---
 
